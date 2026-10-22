@@ -1,0 +1,26 @@
+# ========================================================
+# Core Backend Dependencies
+# Public Safety, Physical Security & Governance Platform
+# ========================================================
+
+# Web Framework & Server
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.28.0,<1.0.0
+pydantic>=2.6.0,<3.0.0
+pydantic-settings>=2.2.0,<3.0.0
+python-multipart>=0.0.9
+
+# ML & Numerical Foundation
+numpy>=1.26.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+joblib>=1.3.0
+
+# Database & Async (Optional / prepared for future)
+# asyncpg>=0.29.0
+# psycopg2-binary>=2.9.9
+
+# Testing & Quality
+pytest>=8.0.0
+httpx>=0.27.0
+pytest-asyncio>=0.23.0
