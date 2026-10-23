@@ -3,7 +3,6 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import {
   FileCheck,
-  ArrowRight,
   Play,
   CheckCircle2,
   AlertTriangle,
@@ -165,27 +164,6 @@ export const GovernancePage: React.FC = () => {
       />
 
       <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
-        {/* Pipeline Architecture */}
-        <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-            Active Environmental Compliance Pipeline (Gradient Boosted Physics Forecaster)
-          </h2>
-          <div className="flex flex-wrap items-center gap-2">
-            {metadata.workflowSteps.map((step, idx) => (
-              <React.Fragment key={idx}>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-50/70 border border-blue-200 text-xs font-medium text-blue-900">
-                  <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
-                    {idx + 1}
-                  </span>
-                  <span>{step}</span>
-                </div>
-                {idx < metadata.workflowSteps.length - 1 && (
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
 
         {/* Presets */}
         <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
