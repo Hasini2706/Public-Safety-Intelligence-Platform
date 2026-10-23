@@ -11,8 +11,12 @@ class ThreatDetectionInput(BaseModel):
 
 
 class ThreatDetectionResult(BaseModel):
-    threat_level: str = Field(..., description="Normal, Low, Medium, Critical")
+    threat_level: str = Field(..., description="Normal, Low, Medium, High, Critical")
     anomaly_score: float = Field(..., ge=0.0, le=1.0)
     detected_indicators: List[str] = Field(default_factory=list)
     alert_triggered: bool = False
     soc_escalation_advised: bool = False
+    zone_id: str = Field("SERVER-ROOM-ALPHA")
+    sensor_type: str = Field("cctv_motion_badge_reader")
+    recommended_playbook: List[str] = Field(default_factory=list)
+    model_version: str = Field("1.0.0")

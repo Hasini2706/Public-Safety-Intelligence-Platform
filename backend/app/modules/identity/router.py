@@ -19,16 +19,12 @@ async def get_identity_module_status():
 
 @router.post("/verify", response_model=ApiResponse)
 async def verify_identity(payload: IdentityVerificationInput):
-    result = identity_service.verify_identity(payload.reference_id)
-    if not result.get("configured", True):
-        return ApiResponse(
-            success=False,
-            error={
-                "code": "MODEL_NOT_CONFIGURED",
-                "message": result["message"],
-                "details": result,
-            },
-        )
+    result = identity_service.verify_identity(
+        reference_id=payload.reference_id,
+        reference_image_b64=payload.reference_image_b64,
+        verification_image_b64=payload.verification_image_b64,
+        test_scenario=payload.test_scenario,
+    )
     return ApiResponse(
         success=True,
         data=result,

@@ -3,8 +3,9 @@
 Owned by Member 4 (Branch: feature/crime-analysis).
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from app.schemas.common import ModuleInfo
+from ml.crime_analysis.correlator import crime_analysis_module
 
 
 class CrimeAnalysisService:
@@ -12,8 +13,8 @@ class CrimeAnalysisService:
         self.module_id = "crime-analysis"
         self.module_name = "Crime Scene Evidence Analysis + Incident Risk Assessment"
         self.branch = "feature/crime-analysis"
-        self.ml_model_status = "not_configured"
-        self.model_version = "0.1.0-uninitialized"
+        self.ml_model_status = "ready"
+        self.model_version = "1.0.0-calibrated"
 
     def get_status(self) -> ModuleInfo:
         return ModuleInfo(
@@ -26,14 +27,21 @@ class CrimeAnalysisService:
             version=self.model_version,
         )
 
-    def analyze_incident(self, incident_id: str, narrative: str) -> Dict[str, Any]:
-        if self.ml_model_status == "not_configured":
-            return {
-                "configured": False,
-                "message": "Crime evidence assessment ML pipeline is not configured.",
-                "branch_hint": f"Implement risk scoring in ml/crime_analysis/ and connect here on '{self.branch}'",
-            }
-        return {}
+    def analyze_incident(
+        self,
+        incident_id: str,
+        narrative: str,
+        location: str = "Sector 4 Industrial",
+        evidence_items: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Execute crime evidence correlation and incident risk evaluation."""
+        payload = {
+            "incident_id": incident_id,
+            "incident_narrative": narrative,
+            "location": location,
+            "evidence_items": evidence_items or [],
+        }
+        return crime_analysis_module.predict(payload)
 
 
 crime_service = CrimeAnalysisService()

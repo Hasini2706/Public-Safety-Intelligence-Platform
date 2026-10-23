@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 from app.schemas.common import ApiResponse
-from .schemas import MineComplianceInput
+from .schemas import MineComplianceInput, ComplianceReportResult
 from .service import governance_service
 
 router = APIRouter(prefix="/governance", tags=["Module 5: Governance"])
@@ -18,19 +18,17 @@ async def get_governance_module_status():
 
 
 @router.post("/evaluate", response_model=ApiResponse)
-async def evaluate_compliance(payload: MineComplianceInput):
-    result = governance_service.evaluate_compliance(payload.mine_site_id)
-    if not result.get("configured", True):
-        return ApiResponse(
-            success=False,
-            error={
-                "code": "MODEL_NOT_CONFIGURED",
-                "message": result["message"],
-                "details": result,
-            },
-        )
+async def evaluate_mine_compliance(payload: MineComplianceInput):
+    result = governance_service.evaluate_compliance(
+        mine_site_id=payload.mine_site_id,
+        methane_level_ppm=payload.methane_level_ppm,
+        dust_density_mg_m3=payload.dust_density_mg_m3,
+        ventilation_airflow_m3_s=payload.ventilation_airflow_m3_s,
+        seismic_vibration_g=payload.seismic_vibration_g,
+        last_inspection_days_ago=payload.last_inspection_days_ago,
+    )
     return ApiResponse(
         success=True,
         data=result,
-        message="Compliance evaluation completed",
+        message="Mine compliance evaluation completed",
     )

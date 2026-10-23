@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 from app.schemas.common import ApiResponse
-from .schemas import ThreatDetectionInput
+from .schemas import ThreatDetectionInput, ThreatDetectionResult
 from .service import threat_service
 
 router = APIRouter(prefix="/threat-detection", tags=["Module 3: Threat Detection"])
@@ -18,19 +18,14 @@ async def get_threat_module_status():
 
 
 @router.post("/analyze", response_model=ApiResponse)
-async def analyze_threat(payload: ThreatDetectionInput):
-    result = threat_service.analyze_event(payload.zone_id, payload.sensor_type)
-    if not result.get("configured", True):
-        return ApiResponse(
-            success=False,
-            error={
-                "code": "MODEL_NOT_CONFIGURED",
-                "message": result["message"],
-                "details": result,
-            },
-        )
+async def analyze_threat_event(payload: ThreatDetectionInput):
+    result = threat_service.analyze_event(
+        zone_id=payload.zone_id,
+        sensor_type=payload.sensor_type,
+        event_payload=payload.event_payload,
+    )
     return ApiResponse(
         success=True,
         data=result,
-        message="Threat analysis completed",
+        message="Threat event analysis completed",
     )

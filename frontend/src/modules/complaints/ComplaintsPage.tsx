@@ -1,19 +1,126 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
-import { AlertCard } from '../../components/common/AlertCard';
-import { MessageSquareText, ArrowRight, Play, CheckCircle2 } from 'lucide-react';
+import {
+  MessageSquareText,
+  ArrowRight,
+  Play,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Building2,
+  ShieldCheck,
+  Send,
+  Loader2,
+  Sparkles,
+} from 'lucide-react';
 import { MODULE_REGISTRY } from '../../config/navigation';
+import { api } from '../../services/api';
+
+interface ClassificationResult {
+  category: string;
+  confidence: number;
+  priority: string;
+  department: string;
+  sla_hours: number;
+  requires_human_review: boolean;
+  key_risk_factors: string[];
+  model_version: string;
+}
+
+const PRESET_QUERIES = [
+  {
+    label: '⚡ High-Voltage Cable Sparking',
+    title: 'High voltage electrical wire sparking after thunderstorm',
+    description: 'Multiple live high-tension cables snapped and touching water ponding near Sector 12 school gate.',
+    hint: 'Power Utilities',
+  },
+  {
+    label: '🚰 Raw Sewage Hospital Overflow',
+    title: 'Sewage main line burst flooding medical clinic access',
+    description: 'Black wastewater overflowing from broken manhole cap directly into clinic entrance, severe biohazard odor.',
+    hint: 'Sanitation',
+  },
+  {
+    label: '🕳️ Highway Sinkhole Collapse',
+    title: 'Deep 2-meter sinkhole collapsed on expressway bypass',
+    description: 'Road surface caved in suddenly on national highway fast lane, trucks swerving into median barrier.',
+    hint: 'Highways',
+  },
+  {
+    label: '☣️ Toxic Chemical Barrels Dumped',
+    title: 'Leaking industrial chemical drums abandoned in green belt',
+    description: 'Ten rusted metal barrels leaking acidic pungent solvent into storm canal, stinging residents eyes.',
+    hint: 'Environment',
+  },
+  {
+    label: '📢 Midnight Loudspeaker Noise',
+    title: 'High-decibel sound system blasting past 2:30 AM',
+    description: 'Continuous unauthorized public address system operating in residential neighborhood silence zone.',
+    hint: 'Public Order',
+  },
+];
 
 export const ComplaintsPage: React.FC = () => {
   const metadata = MODULE_REGISTRY.find((m) => m.id === 'complaints')!;
-  const [complaintText, setComplaintText] = useState('');
-  const [departmentHint, setDepartmentHint] = useState('');
-  const [hasEvaluated, setHasEvaluated] = useState(false);
+  const [complaintText, setComplaintText] = useState('High voltage electrical wire sparking after thunderstorm');
+  const [description, setDescription] = useState(
+    'Multiple live high-tension cables snapped and touching water ponding near Sector 12 school gate.'
+  );
+  const [departmentHint, setDepartmentHint] = useState('Power Utilities');
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<ClassificationResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isDispatched, setIsDispatched] = useState(false);
 
-  const handleSimulate = (e: React.FormEvent) => {
+  const handleClassify = async (e: React.FormEvent) => {
     e.preventDefault();
-    setHasEvaluated(true);
+    if (!complaintText.trim() && !description.trim()) return;
+
+    setIsLoading(true);
+    setErrorMsg(null);
+    setIsDispatched(false);
+
+    try {
+      const response = await api.request<ClassificationResult>('/complaints/classify', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: complaintText,
+          description: description,
+          department_hint: departmentHint || undefined,
+        }),
+      });
+
+      if (response.success && response.data) {
+        setResult(response.data);
+      } else {
+        setErrorMsg(response.error?.message || 'Failed to classify complaint.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Network error while contacting classification engine.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadPreset = (preset: (typeof PRESET_QUERIES)[0]) => {
+    setComplaintText(preset.title);
+    setDescription(preset.description);
+    setDepartmentHint(preset.hint);
+    setIsDispatched(false);
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'Urgent':
+        return 'bg-red-100 text-red-800 border-red-300 font-bold';
+      case 'High':
+        return 'bg-orange-100 text-orange-800 border-orange-300 font-semibold';
+      case 'Medium':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
   };
 
   return (
@@ -23,20 +130,20 @@ export const ComplaintsPage: React.FC = () => {
         description={metadata.description}
         branch={metadata.branch}
         apiStatus="active"
-        mlStatus="not_configured"
-        modelVersion="v0.1.0-uninitialized"
+        mlStatus="ready"
+        modelVersion="v1.0.0-calibrated"
       />
 
       <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
-        {/* Module Workflow Overview */}
+        {/* Pipeline Architecture Header */}
         <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-            Target ML Pipeline Architecture
+            Active ML Pipeline Architecture (NLP Tfidf + Logistic Calibration)
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             {metadata.workflowSteps.map((step, idx) => (
               <React.Fragment key={idx}>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-50/70 border border-blue-200 text-xs font-medium text-blue-900">
                   <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
                     {idx + 1}
                   </span>
@@ -50,136 +157,239 @@ export const ComplaintsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Developer Branch Notice */}
-        <AlertCard
-          type="info"
-          title="Module Foundation Ready (Member 1)"
-          message={`This UI is the standardized shell for 'feature/complaints'. The NLP classifier pipeline should be developed in ml/complaints/ and connected to backend/app/modules/complaints/service.py.`}
-        />
-
-        {/* Two column layout: Input Console & Prediction Output */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Input Area */}
-          <div className="lg:col-span-6 bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <MessageSquareText className="w-4 h-4 text-blue-600" />
-                <span>Citizen Grievance Input</span>
-              </h3>
-              <span className="text-[11px] font-mono text-slate-400">POST /api/v1/complaints/classify</span>
-            </div>
-
-            <form onSubmit={handleSimulate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Complaint Subject / Title
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Hazardous open pothole causing traffic risk"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  value={complaintText}
-                  onChange={(e) => setComplaintText(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Citizen Grievance Description
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Enter full text of the citizen complaint or incident report..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  value={departmentHint}
-                  onChange={(e) => setDepartmentHint(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setComplaintText('High voltage electrical wire sparking after thunderstorm');
-                    setDepartmentHint('Multiple exposed lines touching water ponding near Sector 12 public school gate.');
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Load Sample Query
-                </button>
-
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors"
-                >
-                  <Play className="w-3.5 h-3.5" />
-                  <span>Execute Pipeline Preview</span>
-                </button>
-              </div>
-            </form>
+        {/* Preset Query Chips */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
+          <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 mb-2.5">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            Quick Test Scenarios (Click to load realistic test cases):
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {PRESET_QUERIES.map((preset, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => loadPreset(preset)}
+                className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 transition-colors text-slate-700"
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Prediction / Results Area */}
+        {/* Two-Column Grid: Form & Output */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Input Form */}
           <div className="lg:col-span-6 bg-white rounded-lg border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Model Prediction & Triage Output
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <MessageSquareText className="w-4 h-4 text-blue-600" />
+                  <span>Citizen Grievance Input Console</span>
                 </h3>
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                  Model Unconfigured
+                <span className="text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  POST /api/v1/complaints/classify
                 </span>
               </div>
 
-              {!hasEvaluated ? (
+              <form onSubmit={handleClassify} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Complaint Subject / Title
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. High voltage electrical wire sparking..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    value={complaintText}
+                    onChange={(e) => setComplaintText(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Grievance Full Narrative
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    placeholder="Enter detailed report of the citizen complaint or hazard..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Department Routing Hint (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Power Utilities, Public Works, Sanitation"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    value={departmentHint}
+                    onChange={(e) => setDepartmentHint(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-[11px] text-slate-400">
+                    Model: TF-IDF N-Gram Vectorizer + Logistic Calibration
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs font-semibold rounded-md shadow-sm transition-colors"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Evaluating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Classify & Triage</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {errorMsg && (
+              <div className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Prediction & Triage Output Area */}
+          <div className="lg:col-span-6 bg-white rounded-lg border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Model Prediction & Triage Intelligence</span>
+                </h3>
+                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  Model Ready (v1.0.0)
+                </span>
+              </div>
+
+              {!result ? (
                 <EmptyState
-                  title="Awaiting Input Evaluation"
-                  description="Submit a complaint text or load a sample query to inspect the classification contract."
+                  title="Awaiting Grievance Input"
+                  description="Submit a complaint text or click a quick test preset above to execute the NLP triage pipeline."
                 />
               ) : (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-700">Contract Verification:</span>
-                      <span className="text-emerald-600 font-medium flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> API Connected
+                  {/* Category & Confidence */}
+                  <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-slate-400 block text-[11px] font-semibold uppercase">
+                          Predicted Category
+                        </span>
+                        <span className="text-sm font-bold text-slate-900">{result.category}</span>
+                      </div>
+                      <span className={`px-2.5 py-1 text-xs rounded-full border ${getPriorityBadge(result.priority)}`}>
+                        {result.priority} Priority
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Predicted Category</span>
-                        <span className="font-mono text-slate-800 font-medium">Pending ML Model</span>
+                    {/* Confidence Progress Bar */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-500 font-medium">Confidence Score</span>
+                        <span className="font-mono font-bold text-blue-700">
+                          {(result.confidence * 100).toFixed(1)}%
+                        </span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Confidence Score</span>
-                        <span className="font-mono text-slate-800 font-medium">--%</span>
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(100, Math.max(10, result.confidence * 100))}%` }}
+                        />
                       </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Calculated Priority</span>
-                        <span className="font-mono text-slate-800 font-medium">--</span>
+                    </div>
+
+                    {/* Department & SLA Grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-slate-400" />
+                        <div>
+                          <span className="text-[10px] text-slate-400 block uppercase font-medium">
+                            Routed Department
+                          </span>
+                          <span className="text-xs font-semibold text-slate-800">{result.department}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block text-[11px]">Review Required</span>
-                        <span className="font-mono text-emerald-700 font-medium">Mandatory (Human)</span>
+
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                        <div>
+                          <span className="text-[10px] text-slate-400 block uppercase font-medium">
+                            Target SLA Turnaround
+                          </span>
+                          <span className="text-xs font-semibold text-slate-800">{result.sla_hours} Hours</span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-800">
-                    <p className="font-semibold mb-1">Developer Implementation Checklist:</p>
-                    <ul className="list-disc list-inside space-y-0.5 text-amber-700 text-[11px]">
-                      <li>Prepare NLP model in <code className="font-mono">ml/complaints/</code></li>
-                      <li>Update <code className="font-mono">backend/app/modules/complaints/service.py</code></li>
-                      <li>Do not commit large model weights directly to Git</li>
+                  {/* Extracted Risk Factors */}
+                  <div className="p-3.5 rounded-lg bg-amber-50/60 border border-amber-200 text-xs">
+                    <span className="font-semibold text-amber-950 block mb-1.5 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                      Key Risk Factors Identified by ML:
+                    </span>
+                    <ul className="space-y-1 text-amber-900">
+                      {result.key_risk_factors.map((factor, idx) => (
+                        <li key={idx} className="flex items-start gap-1.5 text-[11px]">
+                          <span className="text-amber-500 font-bold">•</span>
+                          <span>{factor}</span>
+                        </li>
+                      ))}
                     </ul>
+                  </div>
+
+                  {/* Human-in-the-Loop Workflow Decision */}
+                  <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-700">Human-in-the-Loop Review:</span>
+                      <span className="text-emerald-700 font-medium flex items-center gap-1 text-[11px]">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Mandated Protocol Active
+                      </span>
+                    </div>
+
+                    {isDispatched ? (
+                      <div className="p-2.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Work Order Dispatched to <strong>{result.department}</strong>. Incident Logged.</span>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setIsDispatched(true)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold shadow-sm transition-colors"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>Approve & Dispatch Field Unit</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
             <div className="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400">
-              Responsible AI Note: Citizen complaint classifications must include human oversight prior to enforcement.
+              Responsible AI Note: Citizen complaint classifications are decision-support indicators. Human review is required before administrative dispatch.
             </div>
           </div>
         </div>

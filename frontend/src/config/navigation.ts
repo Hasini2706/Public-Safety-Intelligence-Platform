@@ -23,7 +23,7 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     developer: 'Member 1',
     iconName: 'MessageSquareText',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Complaint text input',
       'Text preprocessing',
@@ -43,7 +43,7 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     developer: 'Member 2',
     iconName: 'UserCheck',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Reference image + verification image',
       'Face detection',
@@ -62,7 +62,7 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     developer: 'Member 3',
     iconName: 'ShieldAlert',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Event/source input',
       'Feature extraction',
@@ -82,7 +82,7 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     developer: 'Member 4',
     iconName: 'Search',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Evidence intake',
       'Evidence metadata',
@@ -102,7 +102,7 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     developer: 'Member 5',
     iconName: 'FileCheck',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Inspection/compliance information',
       'Validation',

@@ -1,8 +1,8 @@
 """API Router for Module 1: Smart Complaint Category Classification."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from app.schemas.common import ApiResponse
-from .schemas import ComplaintInput
+from .schemas import ComplaintInput, ComplaintClassificationResult
 from .service import complaint_service
 
 router = APIRouter(prefix="/complaints", tags=["Module 1: Complaints"])
@@ -20,20 +20,12 @@ async def get_complaint_module_status():
 
 @router.post("/classify", response_model=ApiResponse)
 async def classify_complaint(payload: ComplaintInput):
-    """Classify a citizen complaint.
-
-    Requires trained model deployed on feature/complaints branch.
-    """
-    result = complaint_service.classify_complaint(payload.title, payload.description)
-    if not result.get("configured", True):
-        return ApiResponse(
-            success=False,
-            error={
-                "code": "MODEL_NOT_CONFIGURED",
-                "message": result["message"],
-                "details": result,
-            },
-        )
+    """Classify a citizen complaint and calculate priority triage SLA."""
+    result = complaint_service.classify_complaint(
+        title=payload.title,
+        description=payload.description,
+        department_hint=payload.department_hint,
+    )
     return ApiResponse(
         success=True,
         data=result,
