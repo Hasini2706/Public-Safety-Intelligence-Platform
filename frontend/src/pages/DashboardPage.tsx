@@ -26,7 +26,7 @@ export const DashboardPage: React.FC = () => {
       branch: m.branch,
       developer: m.developer,
       apiStatus: 'active',
-      mlStatus: 'not_configured',
+      mlStatus: 'ready',
     }))
   );
 
@@ -42,7 +42,7 @@ export const DashboardPage: React.FC = () => {
             branch: m.branch,
             developer: registered ? registered.developer : 'Assigned Member',
             apiStatus: m.api_status || 'active',
-            mlStatus: m.ml_status || 'not_configured',
+            mlStatus: m.ml_status || 'ready',
           };
         });
         setModulesData(liveModules);
