@@ -14,7 +14,6 @@ import {
   Upload,
   RotateCcw,
   Trash2,
-  Scan,
   Video,
   VideoOff,
   Sliders,
@@ -184,6 +183,10 @@ export const IdentityPage: React.FC = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [capturedPhotoName, setCapturedPhotoName] = useState<string>('Live Webcam Photo');
+  const [cameraRes, setCameraRes] = useState<string>('HD');
+  const [isClarityBoost, setIsClarityBoost] = useState<boolean>(true);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const liveFileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -224,8 +227,8 @@ export const IdentityPage: React.FC = () => {
     }
   }, [isCameraActive]);
 
-  // Camera controls
-  const startCamera = async () => {
+  // Camera controls with progressive HD resolution negotiation
+  const startCamera = async (targetDeviceId?: string) => {
     setCameraError(null);
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -233,14 +236,105 @@ export const IdentityPage: React.FC = () => {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        audio: false,
-      });
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
+      const activeDevId = targetDeviceId !== undefined ? targetDeviceId : selectedDeviceId;
+
+      // Progressive constraint fallback: 1080p Full HD -> 720p HD -> Default
+      const constraintTiers: MediaStreamConstraints[] = [
+        {
+          video: {
+            deviceId: activeDevId ? { exact: activeDevId } : undefined,
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            facingMode: 'user',
+            frameRate: { ideal: 30, min: 15 },
+          },
+          audio: false,
+        },
+        {
+          video: {
+            deviceId: activeDevId ? { exact: activeDevId } : undefined,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user',
+          },
+          audio: false,
+        },
+        {
+          video: {
+            deviceId: activeDevId ? { exact: activeDevId } : undefined,
+            facingMode: 'user',
+          },
+          audio: false,
+        },
+      ];
+
+      let stream: MediaStream | null = null;
+      for (const constraints of constraintTiers) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          if (stream) break;
+        } catch (e) {
+          // Continue to next constraint tier
+        }
+      }
+
+      if (!stream) {
+        throw new Error('Could not initialize video stream with available camera resolutions.');
+      }
 
       streamRef.current = stream;
       setIsCameraActive(true);
       setCapturedPhoto(null);
+
+      // Check active track settings & capabilities
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        const settings = track.getSettings();
+        if (settings.width && settings.height) {
+          setCameraRes(`${settings.width}x${settings.height}`);
+        } else {
+          setCameraRes('HD');
+        }
+
+        // Try continuous auto-focus, exposure, and balance if supported
+        try {
+          const capabilities: any = track.getCapabilities ? track.getCapabilities() : {};
+          const advanced: any = {};
+          if (capabilities.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes('continuous')) {
+            advanced.focusMode = 'continuous';
+          }
+          if (capabilities.exposureMode && Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes('continuous')) {
+            advanced.exposureMode = 'continuous';
+          }
+          if (capabilities.whiteBalanceMode && Array.isArray(capabilities.whiteBalanceMode) && capabilities.whiteBalanceMode.includes('continuous')) {
+            advanced.whiteBalanceMode = 'continuous';
+          }
+          if (Object.keys(advanced).length > 0 && track.applyConstraints) {
+            await track.applyConstraints({ advanced: [advanced] });
+          }
+        } catch {
+          // Non-fatal if advanced constraints are unsupported
+        }
+
+        // Enumerate video devices for multi-camera switching
+        if (navigator.mediaDevices.enumerateDevices) {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoInputs = devices.filter((d) => d.kind === 'videoinput');
+            setVideoDevices(videoInputs);
+            if (!selectedDeviceId && settings.deviceId) {
+              setSelectedDeviceId(settings.deviceId);
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
     } catch (err: any) {
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraError('Camera access was denied. Please allow camera permissions in your browser address bar.');
@@ -261,23 +355,41 @@ export const IdentityPage: React.FC = () => {
     setIsCameraActive(false);
   };
 
+  const handleDeviceChange = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    if (isCameraActive) {
+      stopCamera();
+      setTimeout(() => {
+        startCamera(deviceId);
+      }, 100);
+    }
+  };
+
   const captureLivePhoto = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    const vWidth = video.videoWidth || 640;
-    const vHeight = video.videoHeight || 480;
+    const vWidth = video.videoWidth || 1280;
+    const vHeight = video.videoHeight || 720;
     const cropSize = Math.min(vWidth, vHeight);
     const startX = (vWidth - cropSize) / 2;
     const startY = (vHeight - cropSize) / 2;
-    canvas.width = 480;
-    canvas.height = 480;
+
+    // High clarity 720x720 square capture centered on the biometric reticle
+    const targetSize = Math.min(cropSize, 720);
+    canvas.width = targetSize;
+    canvas.height = targetSize;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.drawImage(video, startX, startY, cropSize, cropSize, 0, 0, 480, 480);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      if (isClarityBoost) {
+        ctx.filter = 'contrast(1.10) brightness(1.03) saturate(1.08)';
+      }
+      ctx.drawImage(video, startX, startY, cropSize, cropSize, 0, 0, targetSize, targetSize);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       setCapturedPhoto(dataUrl);
-      setCapturedPhotoName('webcam_capture_' + new Date().toLocaleTimeString().replace(/:/g, '') + '.jpg');
+      setCapturedPhotoName('webcam_hd_' + new Date().toLocaleTimeString().replace(/:/g, '') + '.jpg');
       stopCamera();
       setResult(null);
     }
@@ -588,38 +700,111 @@ export const IdentityPage: React.FC = () => {
                   />
 
                   {/* Camera Video / Preview / Placeholder container */}
-                  <div className="border border-slate-200 rounded-lg overflow-hidden bg-slate-900 relative min-h-[190px] flex items-center justify-center">
+                  <div className="border border-slate-200 rounded-lg overflow-hidden bg-slate-900 relative min-h-[290px] h-[290px] sm:h-[310px] flex items-center justify-center">
                     {/* Mode A: Live Video Active */}
                     {isCameraActive ? (
-                      <div className="relative w-full h-[190px] bg-black">
+                      <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
                         <video
                           ref={videoRef}
                           autoPlay
                           playsInline
                           muted
                           className="w-full h-full object-cover"
+                          style={{
+                            filter: isClarityBoost
+                              ? 'contrast(1.10) brightness(1.03) saturate(1.08)'
+                              : 'none',
+                            transition: 'filter 0.25s ease-in-out',
+                          }}
                         />
-                        {/* Biometric Overlay Reticle */}
-                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                          <div className="w-28 h-36 border-2 border-dashed border-blue-400/80 rounded-2xl flex items-center justify-center">
-                            <Scan className="w-10 h-10 text-blue-300/60 animate-pulse" />
+
+                        {/* Top Controls Overlay: Resolution & Clarity Boost */}
+                        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between z-10 pointer-events-auto">
+                          {/* Left: Live Indicator & Resolution Tag */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/90 text-white text-[10px] font-bold shadow backdrop-blur-sm animate-pulse">
+                              <span className="w-2 h-2 rounded-full bg-white" /> LIVE
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700/80 text-blue-300 text-[10px] font-mono font-semibold shadow backdrop-blur-sm">
+                              {cameraRes} HD
+                            </span>
+                          </div>
+
+                          {/* Right: Clarity Boost Toggle & Camera Switch */}
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setIsClarityBoost(!isClarityBoost)}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold shadow backdrop-blur-sm transition-all border ${
+                                isClarityBoost
+                                  ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-300'
+                                  : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700'
+                              }`}
+                              title="Toggle auto-contrast and clarity enhancement"
+                            >
+                              <Sparkles className="w-3 h-3 fill-current" />
+                              <span>Clarity Boost: {isClarityBoost ? 'ON' : 'OFF'}</span>
+                            </button>
+
+                            {videoDevices.length > 1 && (
+                              <select
+                                value={selectedDeviceId}
+                                onChange={(e) => handleDeviceChange(e.target.value)}
+                                className="bg-slate-900/80 border border-slate-700 text-slate-200 text-[10px] rounded-full px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 max-w-[110px] truncate"
+                                title="Switch Video Device"
+                              >
+                                {videoDevices.map((dev, idx) => (
+                                  <option key={dev.deviceId || idx} value={dev.deviceId}>
+                                    {dev.label || `Camera ${idx + 1}`}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                         </div>
 
-                        {/* Floating Action Controls */}
-                        <div className="absolute bottom-2.5 inset-x-0 flex items-center justify-center gap-2 px-3">
+                        {/* Center Biometric Overlay Reticle with Eye-Level Guide */}
+                        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                          <div className="w-36 h-48 sm:w-44 sm:h-56 border-2 border-dashed border-blue-400/90 rounded-[2.5rem] relative flex flex-col items-center justify-between p-3 shadow-[0_0_25px_rgba(59,130,246,0.25)]">
+                            {/* Top Corner Markers */}
+                            <div className="w-full flex justify-between">
+                              <span className="w-3 h-3 border-t-2 border-l-2 border-blue-300" />
+                              <span className="w-3 h-3 border-t-2 border-r-2 border-blue-300" />
+                            </div>
+
+                            {/* Eye-Level Reference Line */}
+                            <div className="w-28 border-t border-dashed border-blue-300/70 my-auto flex items-center justify-center">
+                              <span className="text-[9px] text-blue-200 font-mono tracking-wider -mt-3.5 bg-black/50 px-1.5 py-0.5 rounded">
+                                EYE LEVEL
+                              </span>
+                            </div>
+
+                            {/* Bottom Corner Markers */}
+                            <div className="w-full flex justify-between">
+                              <span className="w-3 h-3 border-b-2 border-l-2 border-blue-300" />
+                              <span className="w-3 h-3 border-b-2 border-r-2 border-blue-300" />
+                            </div>
+                          </div>
+
+                          <span className="text-[11px] font-medium text-blue-200/95 mt-2 bg-black/60 px-2.5 py-0.5 rounded-full backdrop-blur-sm shadow">
+                            Position face within the frame
+                          </span>
+                        </div>
+
+                        {/* Bottom Floating Action Controls */}
+                        <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-2 px-3 z-10 pointer-events-auto">
                           <button
                             type="button"
                             onClick={captureLivePhoto}
-                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md transition-colors"
+                            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-lg transition-colors ring-2 ring-white/20"
                           >
                             <Camera className="w-3.5 h-3.5" />
-                            <span>Capture Photo</span>
+                            <span>Capture High-Res Photo</span>
                           </button>
                           <button
                             type="button"
                             onClick={stopCamera}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700/70 shadow transition-colors"
                           >
                             <VideoOff className="w-3.5 h-3.5" />
                             <span>Cancel</span>
@@ -628,20 +813,31 @@ export const IdentityPage: React.FC = () => {
                       </div>
                     ) : capturedPhoto ? (
                       /* Mode B: Captured Photo Preview */
-                      <div className="relative w-full h-[190px] bg-slate-950 flex items-center justify-center">
+                      <div className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
                         <img
                           src={capturedPhoto}
                           alt="Captured probe"
                           className="w-full h-full object-contain"
                         />
-                        <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
+
+                        {/* Top Left: Clarity Badge */}
+                        <div className="absolute top-2.5 left-2.5 bg-slate-900/85 border border-slate-700 text-amber-300 text-[10px] font-semibold px-2 py-0.5 rounded-full shadow backdrop-blur-sm flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          <span>HD Clarity Captured</span>
+                        </div>
+
+                        {/* Top Right: Ready Badge */}
+                        <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
                           <span>{capturedPhotoName || 'Live Photo Ready'}</span>
                         </div>
-                        <div className="absolute bottom-2.5 inset-x-0 flex items-center justify-center gap-2">
+
+                        {/* Bottom Retake / Remove Controls */}
+                        <div className="absolute bottom-3 inset-x-0 flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={retakePhoto}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-medium border border-slate-700 shadow transition-colors"
+                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-medium border border-slate-700 shadow transition-colors"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                             <span>Retake Photo</span>
@@ -662,19 +858,21 @@ export const IdentityPage: React.FC = () => {
                     ) : (
                       /* Mode C: Idle Camera State */
                       <div className="p-6 text-center text-slate-400">
-                        <Camera className="w-8 h-8 mx-auto mb-2 text-slate-500" />
-                        <p className="text-xs text-slate-300 font-medium">Camera is currently inactive</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5 mb-3">
-                          Start your webcam or upload a photo to compare with the reference photo
+                        <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-3">
+                          <Camera className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <p className="text-sm text-slate-200 font-semibold">Live Camera Ready</p>
+                        <p className="text-xs text-slate-400 mt-1 mb-4 max-w-sm mx-auto">
+                          Starts high-definition live video capture with real-time biometric reticle alignment and clarity optimization.
                         </p>
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-2.5">
                           <button
                             type="button"
-                            onClick={startCamera}
+                            onClick={() => startCamera()}
                             className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow transition-colors"
                           >
                             <Video className="w-3.5 h-3.5" />
-                            <span>Start Camera</span>
+                            <span>Start HD Camera</span>
                           </button>
                           <button
                             type="button"
@@ -687,6 +885,20 @@ export const IdentityPage: React.FC = () => {
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* Camera Clarity & Alignment Guide */}
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-blue-50/70 border border-blue-100 flex items-start gap-2 text-xs text-blue-900">
+                    <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-blue-950">Camera Clarity & Positioning Guide</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-blue-800">
+                        <span>• <strong>Front Lighting:</strong> Face a light source; avoid backlighting.</span>
+                        <span>• <strong>Eye Level:</strong> Align eyes with the dashed guideline.</span>
+                        <span>• <strong>Clarity Boost:</strong> Auto-boosts contrast and sharpness.</span>
+                        <span>• <strong>Clean Lens:</strong> Wipe camera lens to remove smudges.</span>
+                      </div>
+                    </div>
                   </div>
 
                   {cameraError && (
