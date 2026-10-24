@@ -9,6 +9,7 @@ import {
   Tag,
   Crosshair,
   BadgeAlert,
+  BarChart2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -154,6 +155,21 @@ export const CrimeAnalysisPage: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
+      {/* Main Heading: Crime Analysis */}
+      <div className="bg-white border-b border-slate-200 px-6 sm:px-8 py-5">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
+            <BarChart2 className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Crime Analysis</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Multi-factor incident risk assessment and evidence correlation.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
         {/* Presets */}
         <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
@@ -298,10 +314,6 @@ export const CrimeAnalysisPage: React.FC = () => {
                   <Crosshair className="w-4 h-4 text-blue-600" />
                   <span>Investigative Intelligence Brief</span>
                 </h3>
-                {/* 1. Model Ready */}
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  Model Ready (v1.0.0)
-                </span>
               </div>
 
               {!result ? (
@@ -405,11 +417,6 @@ export const CrimeAnalysisPage: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* 2. Response AI */}
-            <div className="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400">
-              Responsible AI Note: Crime analysis outputs are probabilistic aids for sworn human investigators. Never proclaim guilt or arrest mandates automatically.
             </div>
           </div>
         </div>
