@@ -67,6 +67,105 @@ def test_identity_verify_endpoint(client):
     assert data["liveness_score"] > 0.0
 
 
+def test_identity_verify_scenarios(client):
+    """Test Module 2: Borderline and mismatch status classifications."""
+    # Borderline scenario
+    res_b = client.post(
+        "/api/v1/identity/verify",
+        json={"reference_id": "REF-ID-98214", "test_scenario": "borderline"},
+    ).json()
+    assert res_b["success"] is True
+    assert res_b["data"]["match_status"] == "Borderline Match – Manual Review Required"
+    assert 0.65 <= res_b["data"]["similarity_score"] < 0.78
+
+    # Mismatch scenario
+    res_m = client.post(
+        "/api/v1/identity/verify",
+        json={"reference_id": "REF-ID-98214", "test_scenario": "mismatch"},
+    ).json()
+    assert res_m["success"] is True
+    assert res_m["data"]["match_status"] == "Not Verified"
+    assert res_m["data"]["similarity_score"] < 0.65
+
+    # Missing one photo validation error
+    res_err = client.post(
+        "/api/v1/identity/verify",
+        json={"reference_id": "REF-ID-98214", "reference_image_b64": "invalid_too_short"},
+    ).json()
+    assert res_err["success"] is False
+    assert "error" in res_err
+
+
+def test_identity_verify_with_real_images(client):
+    """Test actual image base64 comparison between match, mismatch, and blank images."""
+    import base64
+    import io
+    import numpy as np
+    from PIL import Image
+
+    def make_face_png(bg_color=(200, 220, 240), eye_offset=0):
+        im = Image.new("RGB", (100, 100), color=bg_color)
+        arr = np.array(im, dtype=np.uint8)
+        arr[20:80, 25:75] = [150, 120, 100]
+        arr[35:45, 35 - eye_offset : 45 - eye_offset] = [30, 30, 30]
+        arr[35:45, 55 + eye_offset : 65 + eye_offset] = [30, 30, 30]
+        arr[50:60, 48:52] = [60, 40, 30]
+        arr[65:72, 40:60] = [120, 40, 40]
+        buf = io.BytesIO()
+        Image.fromarray(arr).save(buf, format="PNG")
+        return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    img_ref = make_face_png(bg_color=(200, 220, 240), eye_offset=0)
+    img_match = make_face_png(bg_color=(200, 220, 240), eye_offset=0) # identical
+    img_diff = make_face_png(bg_color=(50, 60, 80), eye_offset=6) # different features & bg
+
+    # Test Match
+    res_match = client.post(
+        "/api/v1/identity/verify",
+        json={
+            "reference_id": "REF-ID-98214",
+            "reference_image_b64": img_ref,
+            "verification_image_b64": img_match,
+        },
+    ).json()
+    assert res_match["success"] is True
+    assert res_match["data"]["match_status"] == "Verified Match"
+    assert res_match["data"]["similarity_score"] >= 0.78
+    assert len(res_match["data"]["features_breakdown"]) == 4
+
+    # Test Mismatch / Divergent Images
+    res_mismatch = client.post(
+        "/api/v1/identity/verify",
+        json={
+            "reference_id": "REF-ID-98214",
+            "reference_image_b64": img_ref,
+            "verification_image_b64": img_diff,
+        },
+    ).json()
+    assert res_mismatch["success"] is True
+    assert res_mismatch["data"]["match_status"] in ["Not Verified", "Borderline Match – Manual Review Required"]
+    assert res_mismatch["data"]["similarity_score"] < 0.78
+
+    # Test Blank / Corrupt Image
+    blank_im = Image.new("RGB", (100, 100), color=(0, 0, 0))
+    buf = io.BytesIO()
+    blank_im.save(buf, format="PNG")
+    blank_b64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    res_blank = client.post(
+        "/api/v1/identity/verify",
+        json={
+            "reference_id": "REF-ID-98214",
+            "reference_image_b64": img_ref,
+            "verification_image_b64": blank_b64,
+        },
+    ).json()
+    assert res_blank["success"] is False
+    assert "error" in res_blank
+
+
+
+
 def test_threat_detection_analyze_endpoint(client):
     """Test Module 3: Physical security threat detection for IT facilities."""
     response = client.post(
