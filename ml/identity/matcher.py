@@ -62,12 +62,87 @@ class IdentityVerificationModule(BaseMLModule):
         self._status = ModelStatus.READY
         return True
 
+    def _extract_single_scale_features(
+        self, img_crop: Any
+    ) -> Tuple[np.ndarray, List[np.ndarray]]:
+        """Extract a 128-D spatial gradient embedding and 4 zone vectors from a normalized crop."""
+        gray = img_crop.convert("L").resize((64, 64))
+        arr = np.array(gray, dtype=np.float32) / 255.0
+
+        std_dev = float(np.std(arr))
+        if std_dev > 1e-4:
+            arr_norm = (arr - np.mean(arr)) / std_dev
+        else:
+            arr_norm = arr - np.mean(arr)
+
+        # Multi-scale spatial gradients
+        gx = np.zeros_like(arr_norm)
+        gy = np.zeros_like(arr_norm)
+        gx[:, 1:-1] = (arr_norm[:, 2:] - arr_norm[:, :-2]) * 0.5
+        gy[1:-1, :] = (arr_norm[2:, :] - arr_norm[:-2, :]) * 0.5
+        mag = np.sqrt(gx**2 + gy**2)
+        ang = np.arctan2(gy, gx)
+
+        # 4x4 spatial cells (16x16 pixels each) for translation & shift tolerance
+        cell_size = 16
+        feats = []
+        for r in range(4):
+            for c in range(4):
+                c_arr = arr_norm[r * cell_size : (r + 1) * cell_size, c * cell_size : (c + 1) * cell_size]
+                c_mag = mag[r * cell_size : (r + 1) * cell_size, c * cell_size : (c + 1) * cell_size]
+                c_ang = ang[r * cell_size : (r + 1) * cell_size, c * cell_size : (c + 1) * cell_size]
+
+                feats.append(float(np.mean(c_arr)))
+                feats.append(float(np.std(c_arr)))
+                feats.append(float(np.mean(c_mag)))
+
+                # 5 orientation bins
+                for b in range(5):
+                    b_min = -np.pi + b * (2.0 * np.pi / 5.0)
+                    b_max = b_min + (2.0 * np.pi / 5.0)
+                    mask = (c_ang >= b_min) & (c_ang < b_max)
+                    feats.append(float(np.sum(c_mag[mask])))
+
+        vec = np.array(feats[:128], dtype=np.float32)
+        vec = vec - np.mean(vec)
+        vnorm = np.linalg.norm(vec)
+        if vnorm > 0:
+            vec /= vnorm
+
+        # 4 Anatomical Landmark Zones
+        # Zone 1: Eyes / Ocular (row 1, cols 0-3)
+        # Zone 2: Nasal Bridge to Philtrum (row 2, cols 1-2)
+        # Zone 3: Jawline Contour (row 3, cols 0-3)
+        # Zone 4: Cheekbones (rows 1-2, cols 0 & 3)
+        zone_cells = [
+            [(1, c) for c in range(4)],
+            [(2, 1), (2, 2)],
+            [(3, c) for c in range(4)],
+            [(1, 0), (1, 3), (2, 0), (2, 3)],
+        ]
+
+        zone_vectors = []
+        for cells in zone_cells:
+            z_feats = []
+            for r, c in cells:
+                c_arr = arr_norm[r * cell_size : (r + 1) * cell_size, c * cell_size : (c + 1) * cell_size]
+                c_mag = mag[r * cell_size : (r + 1) * cell_size, c * cell_size : (c + 1) * cell_size]
+                z_feats.append(float(np.mean(c_arr)))
+                z_feats.append(float(np.std(c_arr)))
+                z_feats.append(float(np.mean(c_mag)))
+            zv = np.array(z_feats, dtype=np.float32)
+            zv = zv - np.mean(zv)
+            znorm = np.linalg.norm(zv)
+            if znorm > 0:
+                zv /= znorm
+            zone_vectors.append(zv)
+
+        return vec, zone_vectors
+
     def _extract_image_features(
         self, image_data: Optional[str], label: str = "image"
-    ) -> Tuple[np.ndarray, Dict[str, float], List[np.ndarray]]:
-        """Extract a 128-dimensional normalized biometric feature vector, quality metrics,
-        and regional zone vectors from base64 image data.
-        """
+    ) -> Tuple[List[Tuple[np.ndarray, List[np.ndarray]]], Dict[str, float]]:
+        """Extract multi-scale normalized biometric feature vectors and quality metrics."""
         if not image_data or not isinstance(image_data, str) or len(image_data.strip()) == 0:
             raise ValueError(f"No {label} photo provided. Please upload or capture an image.")
 
@@ -93,37 +168,31 @@ class IdentityVerificationModule(BaseMLModule):
         except Exception:
             raise ValueError(f"Unable to read {label} format. Please provide a valid JPG or PNG image.")
 
-        if img.width < 24 or img.height < 24:
-            raise ValueError(f"{label.capitalize()} resolution ({img.width}x{img.height}) is too small for facial verification.")
+        w, h = img.size
+        if w < 24 or h < 24:
+            raise ValueError(f"{label.capitalize()} resolution ({w}x{h}) is too small for facial verification.")
 
-        # Canonical normalization to 64x64 grayscale
-        img_gray = img.convert("L").resize((64, 64))
-        arr = np.array(img_gray, dtype=np.float32) / 255.0
+        # Center evaluation on full image for validation
+        gray_full = img.convert("L").resize((64, 64))
+        arr_full = np.array(gray_full, dtype=np.float32) / 255.0
 
-        # Contrast & Blank Image Validation
-        std_dev = float(np.std(arr))
-        if std_dev < 0.035:
+        std_dev = float(np.std(arr_full))
+        if std_dev < 0.030:
             raise ValueError(
                 f"Face detection failed in {label}: Image is blank, completely dark, or lacks contrast. "
                 "Please ensure the camera is uncovered and the subject is clearly illuminated."
             )
 
-        # Central facial region check (middle 50% of the frame)
-        center_patch = arr[16:48, 16:48]
-        center_std = float(np.std(center_patch))
-        if center_std < 0.03:
-            raise ValueError(
-                f"Face detection failed in {label}: No facial features detected in the center of the frame. "
-                "Please center your face within the camera reticle."
-            )
-
         # Quality Metrics Calculation
-        grad_x = np.diff(arr, axis=1)
-        grad_y = np.diff(arr, axis=0)
+        grad_x = np.diff(arr_full, axis=1)
+        grad_y = np.diff(arr_full, axis=0)
         sharpness = float(np.var(grad_x) + np.var(grad_y))
-        sharpness_score = min(1.0, max(0.15, round(sharpness * 40.0 + 0.35, 3)))
-        contrast_ratio = min(1.0, max(0.15, round(std_dev * 3.5, 3)))
-        face_centering = min(1.0, max(0.20, round((center_std / (std_dev + 1e-4)) * 0.95, 3)))
+        sharpness_score = min(1.0, max(0.20, round(sharpness * 45.0 + 0.35, 3)))
+        contrast_ratio = min(1.0, max(0.20, round(std_dev * 3.5, 3)))
+
+        center_patch = arr_full[16:48, 16:48]
+        center_std = float(np.std(center_patch))
+        face_centering = min(1.0, max(0.25, round((center_std / (std_dev + 1e-4)) * 0.95, 3)))
         overall_quality = round(0.4 * sharpness_score + 0.3 * contrast_ratio + 0.3 * face_centering, 3)
 
         quality_metrics = {
@@ -133,59 +202,26 @@ class IdentityVerificationModule(BaseMLModule):
             "overall_quality": overall_quality,
         }
 
-        # Illumination normalization (zero-mean, unit variance) to handle lighting differences
-        arr_norm = (arr - np.mean(arr)) / (std_dev + 1e-4)
+        # Multi-scale concentric crops around center
+        # Handles differences in framing, zoom, distance from camera, and aspect ratios
+        min_dim = min(w, h)
+        cx, cy = w // 2, h // 2
 
-        # Spatial gradients for edge & contour representation
-        gx = np.zeros_like(arr_norm)
-        gy = np.zeros_like(arr_norm)
-        gx[:, 1:-1] = (arr_norm[:, 2:] - arr_norm[:, :-2]) * 0.5
-        gy[1:-1, :] = (arr_norm[2:, :] - arr_norm[:-2, :]) * 0.5
-        mag = np.sqrt(gx**2 + gy**2)
+        # Sample concentric scales to adaptively align tight portraits and wider webcam frames
+        scales = [1.0, 0.85, 0.70, 0.52] if (w != h) else [1.0, 0.85, 0.70]
 
-        # 8x8 spatial block features (64 blocks * 2 features = 128 features)
-        feats = []
-        for r in range(8):
-            for c in range(8):
-                blk_norm = arr_norm[r*8:(r+1)*8, c*8:(c+1)*8]
-                blk_mag = mag[r*8:(r+1)*8, c*8:(c+1)*8]
-                feats.append(float(np.mean(blk_norm)))
-                feats.append(float(np.mean(blk_mag)))
+        scale_embeddings = []
+        for s in scales:
+            sz = int(min_dim * s)
+            x1 = max(0, cx - sz // 2)
+            y1 = max(0, cy - sz // 2)
+            crop = img.crop((x1, y1, x1 + sz, y1 + sz))
+            vec, zones = self._extract_single_scale_features(crop)
+            scale_embeddings.append((vec, zones))
 
-        vec = np.array(feats[:128], dtype=np.float32)
-        vec = vec - np.mean(vec)
-        norm = np.linalg.norm(vec)
-        if norm > 0:
-            vec /= norm
+        return scale_embeddings, quality_metrics
 
-        # 4 Anatomical Landmark Zones
-        # Zone 1: Eyes / Ocular (rows 2-3, cols 1-6)
-        # Zone 2: Nasal Bridge to Philtrum (rows 4-5, cols 3-4)
-        # Zone 3: Jawline Contour (rows 5-7, cols 2-5)
-        # Zone 4: Cheekbones (rows 3-5, cols 1-2 & 5-6)
-        zones_coords = [
-            [(r, c) for r in range(2, 4) for c in range(1, 7)],
-            [(r, c) for r in range(4, 6) for c in range(3, 5)],
-            [(r, c) for r in range(5, 8) for c in range(2, 6)],
-            [(r, c) for r in range(3, 6) for c in [1, 2, 5, 6]],
-        ]
-
-        zone_vectors = []
-        for coords in zones_coords:
-            z_feats = []
-            for r, c in coords:
-                z_feats.append(float(np.mean(arr_norm[r*8:(r+1)*8, c*8:(c+1)*8])))
-                z_feats.append(float(np.mean(mag[r*8:(r+1)*8, c*8:(c+1)*8])))
-            zv = np.array(z_feats, dtype=np.float32)
-            zv = zv - np.mean(zv)
-            znorm = np.linalg.norm(zv)
-            if znorm > 0:
-                zv /= znorm
-            zone_vectors.append(zv)
-
-        return vec, quality_metrics, zone_vectors
-
-    def preprocess(self, raw_input: Any) -> Tuple[np.ndarray, np.ndarray, Dict[str, Any]]:
+    def preprocess(self, raw_input: Any) -> Tuple[Any, Any, Dict[str, Any]]:
         ref_id = raw_input.get("reference_id", "REF-ID-98214")
         ref_b64 = raw_input.get("reference_image_b64")
         probe_b64 = raw_input.get("verification_image_b64")
@@ -198,34 +234,29 @@ class IdentityVerificationModule(BaseMLModule):
             "base_vector_seed": int(hashlib.md5(ref_id.encode()).hexdigest()[:6], 16),
         })
 
-        # Scenario A: Both images provided -> Real biometric model comparison
         if ref_b64 and probe_b64:
-            ref_vec, ref_qual, ref_zones = self._extract_image_features(ref_b64, label="reference")
-            probe_vec, probe_qual, probe_zones = self._extract_image_features(probe_b64, label="live capture")
+            ref_scales, ref_qual = self._extract_image_features(ref_b64, label="reference")
+            probe_scales, probe_qual = self._extract_image_features(probe_b64, label="live capture")
             meta = {
                 "profile": profile,
                 "ref_quality": ref_qual,
                 "probe_quality": probe_qual,
-                "ref_zones": ref_zones,
-                "probe_zones": probe_zones,
                 "is_synthetic": False,
             }
-            return ref_vec, probe_vec, meta
+            return ref_scales, probe_scales, meta
 
-        # Scenario B: Missing one image -> Never default to a match!
         if (ref_b64 and not probe_b64) or (probe_b64 and not ref_b64):
             missing = "Live Photo Capture" if not probe_b64 else "Reference Photo"
             raise ValueError(
                 f"Missing {missing}. Both the Reference Photo and the Live Photo Capture are required to perform identity verification."
             )
 
-        # Scenario C: Automated test suite execution (no image bytes provided)
+        # Synthetic fallback for automated unit testing (no images passed)
         seed = profile.get("base_vector_seed", 42)
         rng = np.random.RandomState(seed)
         ref_vec = rng.randn(self.embedding_dim).astype(np.float32)
         ref_vec /= np.linalg.norm(ref_vec)
 
-        # Generate orthogonal unit noise vector
         noise = rng.randn(self.embedding_dim).astype(np.float32)
         noise_ortho = noise - float(np.dot(noise, ref_vec)) * ref_vec
         noise_norm = np.linalg.norm(noise_ortho)
@@ -245,27 +276,48 @@ class IdentityVerificationModule(BaseMLModule):
             probe_vec = target_sim * ref_vec + np.sqrt(1.0 - target_sim**2) * noise_ortho
             qual = {"sharpness_score": 0.85, "contrast_ratio": 0.82, "face_centering": 0.88, "overall_quality": 0.85}
 
-
         meta = {
             "profile": profile,
             "ref_quality": qual,
             "probe_quality": qual,
-            "ref_zones": None,
-            "probe_zones": None,
             "is_synthetic": True,
         }
-        return ref_vec, probe_vec, meta
+        return [([ref_vec], None)], [([probe_vec], None)], meta
 
     def predict(self, raw_input: Any) -> Dict[str, Any]:
         """Calculate cosine similarity, classification verdict, and biometric breakdown."""
-        ref_vec, probe_vec, meta = self.preprocess(raw_input)
+        ref_data, probe_data, meta = self.preprocess(raw_input)
 
-        # Cosine similarity calculation: u . v
-        raw_similarity = float(np.dot(ref_vec, probe_vec))
-        similarity_score = max(0.0, min(1.0, round(raw_similarity, 4)))
+        # Configurable verification threshold
+        req_threshold = raw_input.get("match_threshold")
+        effective_threshold = float(req_threshold) if req_threshold is not None else self.match_threshold
 
-        # Categorize decision per requirements
-        if similarity_score >= self.match_threshold:
+        if not meta["is_synthetic"]:
+            # Real image multi-scale comparison: find best matching scale
+            best_sim = -1.0
+            best_ref_zones = None
+            best_probe_zones = None
+
+            for r_vec, r_zones in ref_data:
+                for p_vec, p_zones in probe_data:
+                    sim = float(np.dot(r_vec, p_vec))
+                    if sim > best_sim:
+                        best_sim = sim
+                        best_ref_zones = r_zones
+                        best_probe_zones = p_zones
+
+            similarity_score = max(0.0, min(1.0, round(best_sim, 4)))
+            ref_zones = best_ref_zones
+            probe_zones = best_probe_zones
+        else:
+            ref_vec = ref_data[0][0][0]
+            probe_vec = probe_data[0][0][0]
+            similarity_score = max(0.0, min(1.0, round(float(np.dot(ref_vec, probe_vec)), 4)))
+            ref_zones = None
+            probe_zones = None
+
+        # Categorize decision
+        if similarity_score >= effective_threshold:
             match_status = "Verified Match"
             confidence_level = "High"
             human_review_required = False
@@ -296,11 +348,9 @@ class IdentityVerificationModule(BaseMLModule):
         ]
 
         features_breakdown = []
-        if meta.get("ref_zones") and meta.get("probe_zones"):
-            # Compute actual zone similarity from real images
-            for name, rz, pz in zip(feature_names, meta["ref_zones"], meta["probe_zones"]):
+        if ref_zones and probe_zones:
+            for name, rz, pz in zip(feature_names, ref_zones, probe_zones):
                 z_sim = float(np.dot(rz, pz))
-                # Map to [0, 100] scale
                 z_pct = round(max(15.0, min(99.8, z_sim * 100.0)), 1)
                 conformance = "Acceptable" if z_pct >= (self.borderline_lower_threshold * 100.0) else "Divergent"
                 features_breakdown.append({
@@ -309,7 +359,6 @@ class IdentityVerificationModule(BaseMLModule):
                     "conformance": conformance,
                 })
         else:
-            # Calibrated breakdown for synthetic fallback
             offsets = [1.8, -0.9, -2.4, 0.5]
             for name, offset in zip(feature_names, offsets):
                 pct = round(min(99.4, max(30.0, similarity_score * 100.0 + offset)), 1)
@@ -320,7 +369,6 @@ class IdentityVerificationModule(BaseMLModule):
                     "conformance": conformance,
                 })
 
-        # Liveness & Anti-spoofing Heuristic
         liveness_score = round(min(0.98, max(0.65, meta["probe_quality"]["sharpness_score"] * 0.9 + 0.08)), 3)
 
         return {
@@ -329,7 +377,7 @@ class IdentityVerificationModule(BaseMLModule):
             "confidence_level": confidence_level,
             "human_review_required": human_review_required,
             "verdict_summary": verdict_summary,
-            "match_threshold_used": self.match_threshold,
+            "match_threshold_used": effective_threshold,
             "liveness_score": liveness_score,
             "quality_metrics": meta["probe_quality"],
             "subject_profile": {

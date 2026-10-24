@@ -33,6 +33,7 @@ class IdentityService:
         reference_image_b64: Optional[str] = None,
         verification_image_b64: Optional[str] = None,
         test_scenario: Optional[str] = "match",
+        match_threshold: Optional[float] = 0.78,
     ) -> Dict[str, Any]:
         """Execute facial biometric comparison pipeline."""
         payload = {
@@ -40,6 +41,7 @@ class IdentityService:
             "reference_image_b64": reference_image_b64,
             "verification_image_b64": verification_image_b64,
             "test_scenario": test_scenario,
+            "match_threshold": match_threshold,
         }
         return identity_verification_module.predict(payload)
 

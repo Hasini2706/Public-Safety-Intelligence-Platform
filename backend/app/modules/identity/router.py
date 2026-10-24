@@ -25,6 +25,7 @@ async def verify_identity(payload: IdentityVerificationInput):
             reference_image_b64=payload.reference_image_b64,
             verification_image_b64=payload.verification_image_b64,
             test_scenario=payload.test_scenario,
+            match_threshold=payload.match_threshold,
         )
         return ApiResponse(
             success=True,

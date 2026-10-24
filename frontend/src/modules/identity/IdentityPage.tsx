@@ -265,16 +265,20 @@ export const IdentityPage: React.FC = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    const vWidth = video.videoWidth || 640;
+    const vHeight = video.videoHeight || 480;
+    const cropSize = Math.min(vWidth, vHeight);
+    const startX = (vWidth - cropSize) / 2;
+    const startY = (vHeight - cropSize) / 2;
+    canvas.width = 480;
+    canvas.height = 480;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      ctx.drawImage(video, startX, startY, cropSize, cropSize, 0, 0, 480, 480);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
       setCapturedPhoto(dataUrl);
       setCapturedPhotoName('webcam_capture_' + new Date().toLocaleTimeString().replace(/:/g, '') + '.jpg');
       stopCamera();
-      // Reset past result when new photo captured
       setResult(null);
     }
   };
@@ -389,6 +393,7 @@ export const IdentityPage: React.FC = () => {
           reference_image_b64: referencePhoto,
           verification_image_b64: capturedPhoto,
           test_scenario: 'match',
+          match_threshold: threshold,
         }),
       });
 

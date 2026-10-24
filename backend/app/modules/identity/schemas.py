@@ -9,6 +9,7 @@ class IdentityVerificationInput(BaseModel):
     reference_image_b64: Optional[str] = Field(None, description="Base64 encoded reference face image")
     verification_image_b64: Optional[str] = Field(None, description="Base64 encoded probe face image")
     test_scenario: Optional[str] = Field("match", description="Preset test scenario (match, borderline, mismatch)")
+    match_threshold: Optional[float] = Field(0.78, description="Configurable verification threshold")
 
 
 class FeatureBreakdownItem(BaseModel):
