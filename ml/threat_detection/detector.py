@@ -58,21 +58,89 @@ class PhysicalThreatDetectionModule(BaseMLModule):
         return True
 
     def preprocess(self, raw_input: Any) -> tuple[np.ndarray, Dict[str, Any]]:
-        """Extract multi-sensor telemetry features."""
-        zone_id = raw_input.get("zone_id", "SERVER-ROOM-ALPHA")
-        sensor_type = raw_input.get("sensor_type", "cctv_motion_badge_reader")
+        """Extract multi-sensor telemetry features from text, image, or event payload."""
+        zone_id = raw_input.get("zone_id") or "DATA-CENTER-ZONE-B"
+        sensor_type = raw_input.get("sensor_type") or "cctv_motion_badge_reader"
         payload = raw_input.get("event_payload", {}) or {}
+        text = (raw_input.get("text") or "").strip()
+        image_url = (raw_input.get("image_url") or "").strip()
+        image_b64 = (raw_input.get("image_b64") or "").strip()
 
-        # Extract telemetry attributes with resilient fallbacks
-        after_hours = 1.0 if payload.get("after_hours", False) else 0.0
-        failed_badges = float(payload.get("failed_badge_attempts", 0))
-        person_count = float(payload.get("person_count", 1))
-        door_dwell = float(payload.get("door_dwell_seconds", 12.0))
-        vibration = float(payload.get("rack_vibration_g", 0.02))
-        thermal_delta = float(payload.get("thermal_delta_c", 0.8))
+        # If incident text report is provided, extract semantic security features
+        if text:
+            sensor_type = "incident_text_report"
+            text_lower = text.lower()
 
-        tailgating = bool(payload.get("tailgating_detected", False)) or (person_count > 1 and failed_badges > 0)
-        forced_entry = bool(payload.get("forced_door", False)) or (door_dwell > 60 and failed_badges >= 2)
+            if any(k in text_lower for k in ["server", "pod", "rack"]):
+                zone_id = "SERVER-POD-ALPHA"
+            elif any(k in text_lower for k in ["battery", "vault", "ups", "power"]):
+                zone_id = "BATTERY-VAULT-02"
+            elif any(k in text_lower for k in ["noc", "entrance", "lobby", "gate"]):
+                zone_id = "NOC-MAIN-ENTRANCE"
+            elif any(k in text_lower for k in ["data center", "zone-b", "zone b"]):
+                zone_id = "DATA-CENTER-ZONE-B"
+
+            after_hours = 1.0 if any(k in text_lower for k in [
+                "after hours", "after-hours", "night", "off-hours", "midnight", "evening", "inactive shift", "closed", "dark"
+            ]) else 0.0
+
+            failed_badges = 0.0
+            if any(k in text_lower for k in ["failed badge", "brute force", "unauthorized badge", "rejected credential", "credential failure", "access denied"]):
+                failed_badges = 3.0
+            elif "badge" in text_lower and ("fail" in text_lower or "reject" in text_lower or "error" in text_lower):
+                failed_badges = 2.0
+
+            forced_door = any(k in text_lower for k in [
+                "forced door", "forced entry", "break in", "break-in", "breach", "prying", "tamper", "broken lock",
+                "door forced", "kicked", "intruder", "intrusion", "trespassing", "held open"
+            ])
+
+            person_count = 1.0
+            if any(k in text_lower for k in ["multiple persons", "2 people", "two people", "3 people", "three people", "group", "several", "suspects", "intruders"]):
+                person_count = 2.0
+
+            door_dwell = 75.0 if forced_door else (12.0 if not after_hours else 25.0)
+            vibration = 0.45 if any(k in text_lower for k in ["vibration", "impact", "drill", "hammer", "shaking", "prying", "force"]) else 0.02
+            thermal_delta = 5.2 if any(k in text_lower for k in ["fire", "heat", "thermal", "overheating", "temperature surge", "smoke", "hot"]) else 0.8
+            tailgating = any(k in text_lower for k in ["tailgating", "piggybacking", "followed", "unauthorized follower"])
+        elif image_b64 or image_url:
+            sensor_type = "cctv_vision_stream"
+            after_hours = 1.0 if any(k in (image_url or "").lower() for k in ["night", "dark", "dim"]) else 0.0
+            failed_badges = 2.0 if "breach" in (image_url or "").lower() else 0.0
+            forced_door = any(k in (image_url or "").lower() for k in ["forced", "breach", "intrusion"])
+            person_count = 2.0 if any(k in (image_url or "").lower() for k in ["multiple", "tailgate", "crowd"]) else 1.0
+            door_dwell = 65.0 if forced_door else 15.0
+            vibration = 0.40 if "vibration" in (image_url or "").lower() else 0.02
+            thermal_delta = 4.5 if "thermal" in (image_url or "").lower() else 0.8
+            tailgating = "tailgate" in (image_url or "").lower()
+
+            if image_b64:
+                try:
+                    import base64
+                    import io
+                    from PIL import Image
+                    header, _, encoded = image_b64.partition(",")
+                    raw_b64 = encoded if encoded else header
+                    img = Image.open(io.BytesIO(base64.b64decode(raw_b64))).convert("L")
+                    arr = np.array(img, dtype=np.float32)
+                    mean_val = float(np.mean(arr))
+                    std_val = float(np.std(arr))
+                    if mean_val < 70:
+                        after_hours = 1.0
+                    if std_val > 65:
+                        person_count = 2.0
+                        vibration = 0.15
+                except Exception:
+                    pass
+        else:
+            after_hours = 1.0 if payload.get("after_hours", False) else 0.0
+            failed_badges = float(payload.get("failed_badge_attempts", 0))
+            person_count = float(payload.get("person_count", 1))
+            door_dwell = float(payload.get("door_dwell_seconds", 12.0))
+            vibration = float(payload.get("rack_vibration_g", 0.02))
+            thermal_delta = float(payload.get("thermal_delta_c", 0.8))
+            tailgating = bool(payload.get("tailgating_detected", False)) or (person_count > 1 and failed_badges > 0)
+            forced_door = bool(payload.get("forced_door", False)) or (door_dwell > 60 and failed_badges >= 2)
 
         feature_vector = np.array([[
             after_hours,
@@ -87,8 +155,16 @@ class PhysicalThreatDetectionModule(BaseMLModule):
             "zone_id": zone_id,
             "sensor_type": sensor_type,
             "tailgating": tailgating,
-            "forced_entry": forced_entry,
-            "raw_payload": payload,
+            "forced_entry": forced_door,
+            "raw_payload": {
+                "after_hours": bool(after_hours),
+                "failed_badge_attempts": int(failed_badges),
+                "person_count": int(person_count),
+                "door_dwell_seconds": door_dwell,
+                "rack_vibration_g": vibration,
+                "thermal_delta_c": thermal_delta,
+                "forced_door": forced_door,
+            },
         }
         return feature_vector, metadata
 

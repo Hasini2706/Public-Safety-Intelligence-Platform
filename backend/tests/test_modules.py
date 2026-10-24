@@ -194,6 +194,45 @@ def test_threat_detection_analyze_endpoint(client):
     assert len(data["recommended_playbook"]) > 0
 
 
+def test_threat_detection_text_and_validation(client):
+    """Test Module 3: Text incident report analysis and empty input validation."""
+    # 1. Valid incident text report
+    res_text = client.post(
+        "/api/v1/threat-detection/analyze",
+        json={
+            "text": "Forced entry detected after hours at server room pod with multiple failed badge attempts",
+            "input_type": "text",
+        },
+    ).json()
+    assert res_text["success"] is True
+    assert res_text["data"]["threat_level"] in ["High", "Critical"]
+    assert res_text["data"]["alert_triggered"] is True
+    assert len(res_text["data"]["recommended_playbook"]) > 0
+
+    # 2. Valid image URL
+    res_img = client.post(
+        "/api/v1/threat-detection/analyze",
+        json={
+            "image_url": "https://example.com/cctv_night_breach.jpg",
+            "input_type": "image_url",
+        },
+    ).json()
+    assert res_img["success"] is True
+    assert res_img["data"]["sensor_type"] == "cctv_vision_stream"
+
+    # 3. Empty text validation error
+    res_empty = client.post(
+        "/api/v1/threat-detection/analyze",
+        json={
+            "text": "   ",
+            "input_type": "text",
+        },
+    ).json()
+    assert res_empty["success"] is False
+    assert "error" in res_empty
+    assert "INVALID_INPUT" in res_empty["error"]["code"]
+
+
 def test_crime_analysis_correlate_endpoint(client):
     """Test Module 4: Crime scene evidence correlation and incident risk assessment."""
     response = client.post(

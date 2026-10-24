@@ -27,12 +27,36 @@ class ThreatDetectionService:
             version=self.model_version,
         )
 
-    def analyze_event(self, zone_id: str, sensor_type: str, event_payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def analyze_event(
+        self,
+        zone_id: Optional[str] = None,
+        sensor_type: Optional[str] = None,
+        event_payload: Optional[Dict[str, Any]] = None,
+        text: Optional[str] = None,
+        image_url: Optional[str] = None,
+        image_b64: Optional[str] = None,
+        input_type: Optional[str] = "text",
+    ) -> Dict[str, Any]:
         """Execute physical threat anomaly scoring pipeline."""
+        # Validate based on input_type if specified
+        if input_type == "text" and not event_payload:
+            if not text or not str(text).strip():
+                raise ValueError("Please enter an incident description or threat text to analyze.")
+        elif input_type == "image_url":
+            if not image_url or not str(image_url).strip():
+                raise ValueError("Please provide a valid image URL to analyze.")
+        elif input_type == "file_upload":
+            if not image_b64 or not str(image_b64).strip():
+                raise ValueError("Please select or upload an image file to analyze.")
+
         payload = {
-            "zone_id": zone_id,
-            "sensor_type": sensor_type,
+            "zone_id": (zone_id or "DATA-CENTER-ZONE-B").strip(),
+            "sensor_type": (sensor_type or "cctv_motion_badge_reader").strip(),
             "event_payload": event_payload or {},
+            "text": text.strip() if text else None,
+            "image_url": image_url.strip() if image_url else None,
+            "image_b64": image_b64.strip() if image_b64 else None,
+            "input_type": input_type,
         }
         return threat_detection_module.predict(payload)
 
