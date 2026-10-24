@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import {
   Play,
@@ -10,9 +9,7 @@ import {
   Tag,
   Crosshair,
   BadgeAlert,
-  Scale,
 } from 'lucide-react';
-import { MODULE_REGISTRY } from '../../config/navigation';
 import { api } from '../../services/api';
 
 interface CrimeAnalysisResult {
@@ -73,7 +70,6 @@ const PRESET_INCIDENTS = [
 ];
 
 export const CrimeAnalysisPage: React.FC = () => {
-  const metadata = MODULE_REGISTRY.find((m) => m.id === 'crime-analysis')!;
   const [incidentId, setIncidentId] = useState('INC-2026-X892');
   const [location, setLocation] = useState('Sector 4 Industrial Warehouse');
   const [narrative, setNarrative] = useState(
@@ -157,30 +153,8 @@ export const CrimeAnalysisPage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50">
-      <PageHeader
-        title={metadata.name}
-        description={metadata.description}
-        branch={metadata.branch}
-        apiStatus="active"
-        mlStatus="ready"
-        modelVersion="v1.0.0-calibrated"
-      />
-
+    <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
       <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
-
-        {/* Responsible AI Guardrail Banner */}
-        <div className="p-4 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-900 flex items-start gap-3">
-          <Scale className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <span className="font-bold text-amber-950">Ethical & Legal Safeguards (Decision-Support Only):</span>
-            <p className="text-amber-800 leading-relaxed">
-              Automated crime analysis models provide pattern correlation and risk indicators strictly to assist sworn human investigators.
-              These tools never determine criminal guilt, liability, or probable cause.
-            </p>
-          </div>
-        </div>
-
         {/* Presets */}
         <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
           <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 mb-2.5">
@@ -211,9 +185,6 @@ export const CrimeAnalysisPage: React.FC = () => {
                   <FileText className="w-4 h-4 text-blue-600" />
                   <span>Crime Scene Evidence Intake Console</span>
                 </h3>
-                <span className="text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  POST /api/v1/crime-analysis/analyze
-                </span>
               </div>
 
               <form onSubmit={handleAnalyze} className="space-y-4">
@@ -327,6 +298,7 @@ export const CrimeAnalysisPage: React.FC = () => {
                   <Crosshair className="w-4 h-4 text-blue-600" />
                   <span>Investigative Intelligence Brief</span>
                 </h3>
+                {/* 1. Model Ready */}
                 <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
                   Model Ready (v1.0.0)
                 </span>
@@ -435,6 +407,7 @@ export const CrimeAnalysisPage: React.FC = () => {
               )}
             </div>
 
+            {/* 2. Response AI */}
             <div className="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400">
               Responsible AI Note: Crime analysis outputs are probabilistic aids for sworn human investigators. Never proclaim guilt or arrest mandates automatically.
             </div>
