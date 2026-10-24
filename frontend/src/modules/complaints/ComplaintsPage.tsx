@@ -127,10 +127,6 @@ export const ComplaintsPage: React.FC = () => {
       <PageHeader
         title={metadata.name}
         description={metadata.description}
-        branch={metadata.branch}
-        apiStatus="active"
-        mlStatus="ready"
-        modelVersion="v1.0.0-calibrated"
       />
 
       <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
@@ -165,9 +161,6 @@ export const ComplaintsPage: React.FC = () => {
                   <MessageSquareText className="w-4 h-4 text-blue-600" />
                   <span>Citizen Grievance Input Console</span>
                 </h3>
-                <span className="text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  POST /api/v1/complaints/classify
-                </span>
               </div>
 
               <form onSubmit={handleClassify} className="space-y-4">
@@ -212,10 +205,7 @@ export const ComplaintsPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-[11px] text-slate-400">
-                    Model: TF-IDF N-Gram Vectorizer + Logistic Calibration
-                  </span>
+                <div className="flex items-center justify-end pt-2">
                   <button
                     type="submit"
                     disabled={isLoading}
@@ -253,9 +243,6 @@ export const ComplaintsPage: React.FC = () => {
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
                   <span>Model Prediction & Triage Intelligence</span>
                 </h3>
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  Model Ready (v1.0.0)
-                </span>
               </div>
 
               {!result ? (
@@ -319,21 +306,6 @@ export const ComplaintsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Extracted Risk Factors */}
-                  <div className="p-3.5 rounded-lg bg-amber-50/60 border border-amber-200 text-xs">
-                    <span className="font-semibold text-amber-950 block mb-1.5 flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                      Key Risk Factors Identified by ML:
-                    </span>
-                    <ul className="space-y-1 text-amber-900">
-                      {result.key_risk_factors.map((factor, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5 text-[11px]">
-                          <span className="text-amber-500 font-bold">•</span>
-                          <span>{factor}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
 
                   {/* Human-in-the-Loop Workflow Decision */}
                   <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-2">
