@@ -65,7 +65,12 @@ class IdentityVerificationModule(BaseMLModule):
     def _extract_biometrics_from_crop(self, img_crop: Any) -> Dict[str, Any]:
         """Extract multi-channel biometric features, landmark zones, and skin chromaticity."""
         im_96 = img_crop.convert("RGB").resize((96, 96), Image.Resampling.BILINEAR)
-        arr_l = np.array(im_96.convert("L"), dtype=np.float32) / 255.0
+        arr_raw = np.array(im_96.convert("L"), dtype=np.float32)
+        min_v, max_v = float(np.min(arr_raw)), float(np.max(arr_raw))
+        if max_v - min_v > 12.0:
+            arr_l = (arr_raw - min_v) / (max_v - min_v)
+        else:
+            arr_l = arr_raw / 255.0
 
         ycbcr = np.array(im_96.convert("YCbCr"), dtype=np.float32) / 255.0
         cb = ycbcr[:, :, 1]
@@ -96,14 +101,14 @@ class IdentityVerificationModule(BaseMLModule):
 
         # 4 Anatomical landmark zones
         zone_patches = [
-            ("Inter-Pupillary Distance Ratio", arr_l[24:48, 16:80]),
+            ("Inter-Pupillary Distance Ratio", arr_l[22:48, 16:80]),
             ("Nose Bridge to Philtrum Geometry", arr_l[36:64, 32:64]),
             ("Jawline Contour Spatial Gradient", arr_l[56:88, 24:72]),
             ("Zygomatic Cheekbone Width Ratio", np.concatenate([arr_l[36:60, 16:32], arr_l[36:60, 64:80]], axis=1)),
         ]
 
-        skin_cb = float(np.mean(cb[32:64, 32:64]))
-        skin_cr = float(np.mean(cr[32:64, 32:64]))
+        skin_cb = float(np.mean(cb[30:66, 30:66]))
+        skin_cr = float(np.mean(cr[30:66, 30:66]))
 
         return {
             "vector": vec,
@@ -150,7 +155,7 @@ class IdentityVerificationModule(BaseMLModule):
         arr_full = np.array(gray_full, dtype=np.float32) / 255.0
 
         std_dev = float(np.std(arr_full))
-        if std_dev < 0.030:
+        if std_dev < 0.025:
             raise ValueError(
                 f"Face detection failed in {label}: Image is blank, completely dark, or lacks contrast. "
                 "Please ensure the camera is uncovered and the subject is clearly illuminated."
@@ -176,7 +181,25 @@ class IdentityVerificationModule(BaseMLModule):
         }
 
         min_dim = min(w, h)
-        cx, cy = w // 2, h // 2
+
+        # Locate face center using skin tone clustering in YCbCr
+        img_rgb = img.convert("RGB")
+        thumb = img_rgb.resize((120, 120), Image.Resampling.BILINEAR)
+        arr_thumb = np.array(thumb.convert("YCbCr"), dtype=np.uint8)
+        cb_thumb = arr_thumb[:, :, 1]
+        cr_thumb = arr_thumb[:, :, 2]
+        skin_mask = (cb_thumb >= 75) & (cb_thumb <= 135) & (cr_thumb >= 130) & (cr_thumb <= 178)
+
+        if np.sum(skin_mask) > 120:
+            ys, xs = np.where(skin_mask)
+            cx = int(float(np.median(xs)) / 120.0 * w)
+            cy = int(float(np.median(ys)) / 120.0 * h)
+            # Ensure crop boundary safety
+            margin = min_dim // 4
+            cx = max(margin, min(w - margin, cx))
+            cy = max(margin, min(h - margin, cy))
+        else:
+            cx, cy = w // 2, h // 2
 
         # Concentric scales for translation and distance invariance
         scales = [1.0, 0.85, 0.70]
@@ -271,7 +294,7 @@ class IdentityVerificationModule(BaseMLModule):
             best_sim = -1.0
             best_l1 = 999.0
             best_skin_dist = 999.0
-            best_zone_results: List[Tuple[str, float, str]] = []
+            best_zone_results: List[Tuple[str, float, float]] = []
 
             for r_bio in ref_data:
                 for p_bio in probe_data:
@@ -305,27 +328,64 @@ class IdentityVerificationModule(BaseMLModule):
                         best_sim = cos_sim
                         best_l1 = l1
                         best_skin_dist = skin_dist
-                        avg_zone = float(np.mean(curr_zone_sims))
-                        min_zone = float(min(curr_zone_sims))
 
                         # Build zone breakdown
                         best_zone_results = []
                         for (name, _), corr in zip(r_bio["zones"], curr_zone_sims):
-                            pct = round(max(18.0, min(99.4, corr * 100.0)), 1)
-                            best_zone_results.append((name, pct, corr))
+                            best_zone_results.append((name, corr, corr))
 
-            # Determine if the two photos are of the same person or different people
-            is_different_person = (
-                scenario == "mismatch"
-                or best_l1 >= 0.038
-                or best_skin_dist >= 0.040
-                or min_zone < 0.65
-                or best_sim < 0.985
-            )
+            # Continuous calibrated biometric scoring
+            # 1. Feature gradient vector cosine similarity
+            v_sim = max(0.0, min(1.0, (best_sim + 1.0) / 2.0)) if best_sim < 0.999 else 1.0
 
-            if is_different_person:
-                # Definitely NOT the same person -> Must give Not Verified
-                similarity_score = max(0.18, min(0.52, round(0.48 * best_sim - (best_l1 * 3.0 + best_skin_dist * 3.5), 4)))
+            # 2. Anatomical landmark zone correlations (properly scaled to individual realistic percentages)
+            features_breakdown = []
+            zone_scores = []
+            for name, corr, _ in best_zone_results:
+                # Scaled: corr in [-0.2, 1.0] maps smoothly to [22%, 99%]
+                pct = round(max(20.0, min(99.4, (corr * 0.48 + 0.52) * 100.0)), 1)
+                zone_scores.append(pct / 100.0)
+                is_acceptable = pct >= (effective_threshold * 100.0 - 5.0)
+                features_breakdown.append({
+                    "feature": name,
+                    "similarity_pct": pct,
+                    "conformance": "Acceptable" if is_acceptable else "Divergent",
+                })
+
+            avg_zone = float(np.mean(zone_scores))
+            divergent_count = sum(1 for f in features_breakdown if f["conformance"] == "Divergent")
+
+            # 3. Skin tone similarity
+            skin_sim = max(0.0, min(1.0, 1.0 - (best_skin_dist * 4.0)))
+
+            # 4. Overall continuous similarity score
+            composite = 0.35 * v_sim + 0.50 * avg_zone + 0.15 * skin_sim
+
+            # Multi-landmark divergence gating: if multiple anatomical landmarks diverge, bound match score
+            if divergent_count >= 3:
+                composite = min(composite, 0.48)
+            elif divergent_count >= 2:
+                composite = min(composite, 0.64)
+
+            similarity_score = round(max(0.18, min(0.99, composite)), 4)
+
+            # Determine match status based on calibrated threshold
+            if similarity_score >= effective_threshold:
+                match_status = "Verified Match"
+                confidence_level = "High"
+                human_review_required = False
+                verdict_summary = (
+                    "Biometric facial embeddings match the enrolled reference identity within high-confidence verification criteria."
+                )
+            elif similarity_score >= self.borderline_lower_threshold:
+                match_status = "Borderline Match – Manual Review Required"
+                confidence_level = "Medium"
+                human_review_required = True
+                verdict_summary = (
+                    "Similarity score is close to the verification threshold due to lighting differences, "
+                    "camera angle, image quality, or slight facial-position shifts. Manual officer review required."
+                )
+            else:
                 match_status = "Not Verified"
                 confidence_level = "Low"
                 human_review_required = True
@@ -334,33 +394,6 @@ class IdentityVerificationModule(BaseMLModule):
                     "Facial landmarks, contour geometry, and skin pigmentation diverge from the enrolled reference. "
                     "Identity is NOT verified."
                 )
-
-                features_breakdown = [
-                    {
-                        "feature": name,
-                        "similarity_pct": round(min(52.0, max(18.0, pct * 0.45)), 1),
-                        "conformance": "Divergent",
-                    }
-                    for name, pct, _ in best_zone_results
-                ]
-            else:
-                # Same person with matching biometric attributes
-                similarity_score = max(0.82, min(0.99, round(0.5 * best_sim + 0.5 * avg_zone - (best_l1 * 1.5 + best_skin_dist * 1.5), 4)))
-                match_status = "Verified Match"
-                confidence_level = "High"
-                human_review_required = False
-                verdict_summary = (
-                    "Biometric facial embeddings match the enrolled reference identity within high-confidence verification criteria."
-                )
-
-                features_breakdown = [
-                    {
-                        "feature": name,
-                        "similarity_pct": pct,
-                        "conformance": "Acceptable",
-                    }
-                    for name, pct, _ in best_zone_results
-                ]
 
         else:
             # Synthetic evaluation (automated tests)

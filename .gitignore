@@ -38,6 +38,7 @@ frontend/vite.config.js
 frontend/vite.config.d.ts
 vite.config.js
 vite.config.d.ts
+*.timestamp-*.mjs
 
 # -----------------------------
 # Python / Virtual Environments

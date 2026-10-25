@@ -1,426 +1,498 @@
 import React, { useState } from 'react';
-import { EmptyState } from '../../components/common/EmptyState';
 import {
-  Play,
+  Folder,
+  FileCheck,
   AlertTriangle,
-  Sparkles,
-  Loader2,
+  TrendingUp,
+  Plus,
   FileText,
-  Tag,
-  Crosshair,
-  BadgeAlert,
-  BarChart2,
+  User,
+  Package,
+  Camera,
+  Search,
+  X,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../../services/api';
 
-interface CrimeAnalysisResult {
-  incident_id: string;
-  location: string;
-  risk_level: string;
-  escalation_score: number;
-  corroboration_score: number;
-  pattern_indicators: string[];
-  corroboration_notes: string[];
-  investigator_guidance: string;
-  ethical_disclaimer: string;
-  model_version: string;
+interface EvidenceItem {
+  id: string;
+  name: string;
+  type: 'image' | 'video' | 'document';
+  url: string;
 }
 
-const AVAILABLE_EVIDENCE_ITEMS = [
-  { id: 'weapon_recovered', label: '🔫 Weapon Recovered' },
-  { id: 'ballistic_residue', label: '💥 Ballistic Residue' },
-  { id: 'forced_entry', label: '🚪 Forced Entry' },
-  { id: 'tool_marks', label: '🔨 Tool Marks' },
-  { id: 'dna_sample', label: '🧬 DNA Trace Sample' },
-  { id: 'fingerprints_lifted', label: '🖐️ Fingerprints Lifted' },
-  { id: 'surveillance_match', label: '📹 CCTV Match' },
-  { id: 'vehicle_sighted', label: '🚗 Vehicle Sighted' },
-  { id: 'insider_badge_usage', label: '🪪 Insider Badge Exploit' },
-  { id: 'cyber_tampering', label: '💻 Cyber Tampering' },
+const SAMPLE_EVIDENCE: EvidenceItem[] = [
+  {
+    id: 'ev-1',
+    name: 'bus_stand_cam1.jpg',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'ev-2',
+    name: 'suspect_clothes.jpg',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=400&q=80',
+  },
+  {
+    id: 'ev-3',
+    name: 'phone_receipt.jpg',
+    type: 'image',
+    url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80',
+  },
 ];
 
-const PRESET_INCIDENTS = [
-  {
-    label: '🚨 Armed Commercial Robbery',
-    id: 'INC-2026-X892',
-    location: 'Sector 4 Industrial Warehouse',
-    narrative: 'Armed suspects brandishing firearms confronted security guards at night loading dock and took high-value electronics.',
-    evidence: ['weapon_recovered', 'ballistic_residue', 'forced_entry', 'vehicle_sighted'],
-  },
-  {
-    label: '💼 Night Commercial Safe Cracking',
-    id: 'INC-2026-B410',
-    location: 'Financial District Sector 1',
-    narrative: 'Backdoor lock cylinder pried open and heavy steel safe cut with industrial oxy-acetylene torch during non-operating hours.',
-    evidence: ['forced_entry', 'tool_marks', 'insider_badge_usage'],
-  },
-  {
-    label: '⚡ Copper Wiring Infrastructure Theft',
-    id: 'INC-2026-M104',
-    location: 'Substation Rail Corridor',
-    narrative: 'High-voltage copper ground spools stripped and removed from trackside electrical housing over holiday weekend.',
-    evidence: ['tool_marks', 'vehicle_sighted'],
-  },
-  {
-    label: '🎨 Retail Storefront Vandalism',
-    id: 'INC-2026-V022',
-    location: 'Downtown Commercial Plaza',
-    narrative: 'Exterior storefront display windows tagged with spray paint and decorative glass panel cracked.',
-    evidence: ['surveillance_match'],
-  },
+const SIMILAR_CASES = [
+  { id: 'PS-2025-118', title: 'Mobile theft at bus stand', match: 82 },
+  { id: 'PS-2025-016', title: 'Snatching near market', match: 74 },
+  { id: 'PS-2025-041', title: 'Theft at railway station', match: 71 },
 ];
 
 export const CrimeAnalysisPage: React.FC = () => {
-  const [incidentId, setIncidentId] = useState('INC-2026-X892');
-  const [location, setLocation] = useState('Sector 4 Industrial Warehouse');
-  const [narrative, setNarrative] = useState(
-    'Armed suspects brandishing firearms confronted security guards at night loading dock and took high-value electronics.'
+  const [evidenceTab, setEvidenceTab] = useState<'images' | 'videos' | 'documents'>('images');
+  const [isNewCaseOpen, setIsNewCaseOpen] = useState(false);
+
+  // New Case Intake Form
+  const [caseTitle, setCaseTitle] = useState('Mobile phone stolen at bus stand');
+  const [caseNarrative, setCaseNarrative] = useState(
+    'Mobile phone stolen at bus stand. Suspect seen running towards main road.'
   );
-  const [selectedEvidence, setSelectedEvidence] = useState<string[]>([
-    'weapon_recovered',
-    'ballistic_residue',
-    'forced_entry',
-    'vehicle_sighted',
-  ]);
+  const [caseLocation, setCaseLocation] = useState('Bus stand, Kakinada');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<CrimeAnalysisResult | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const toggleEvidence = (id: string) => {
-    setSelectedEvidence((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const handleAnalyze = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!narrative.trim()) return;
-
-    setIsLoading(true);
-    setErrorMsg(null);
-
+  const handleCreateCase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAnalyzing(true);
     try {
-      const response = await api.request<CrimeAnalysisResult>('/crime-analysis/analyze', {
+      await api.request<any>('/crime-analysis/correlate', {
         method: 'POST',
         body: JSON.stringify({
-          incident_id: incidentId,
-          location: location,
-          incident_narrative: narrative,
-          evidence_items: selectedEvidence,
+          incident_id: 'PS-2026-002',
+          location: caseLocation,
+          narrative: caseNarrative,
+          evidence_tags: ['surveillance_match', 'weapon_recovered'],
         }),
       });
-
-      if (response.success && response.data) {
-        setResult(response.data);
-      } else {
-        setErrorMsg(response.error?.message || 'Evidence correlation analysis failed.');
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Network error communicating with crime analysis service.');
+    } catch {
+      // Fallback
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadPreset = (preset: (typeof PRESET_INCIDENTS)[0]) => {
-    setIncidentId(preset.id);
-    setLocation(preset.location);
-    setNarrative(preset.narrative);
-    setSelectedEvidence(preset.evidence);
-  };
-
-  const getRiskStyle = (risk: string) => {
-    switch (risk) {
-      case 'Elevated':
-        return {
-          badge: 'bg-red-100 text-red-800 border-red-300',
-          barColor: 'bg-red-600',
-          card: 'border-red-400 bg-red-50/40',
-        };
-      case 'Moderate':
-        return {
-          badge: 'bg-amber-100 text-amber-800 border-amber-300',
-          barColor: 'bg-amber-500',
-          card: 'border-amber-400 bg-amber-50/40',
-        };
-      default:
-        return {
-          badge: 'bg-slate-100 text-slate-800 border-slate-300',
-          barColor: 'bg-slate-500',
-          card: 'border-slate-300 bg-slate-50',
-        };
+      setIsAnalyzing(false);
+      setIsNewCaseOpen(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
-      {/* Main Heading: Crime Analysis */}
-      <div className="bg-white border-b border-slate-200 px-6 sm:px-8 py-5">
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
-            <BarChart2 className="w-6 h-6" />
-          </div>
+    <div className="flex-1 flex flex-col bg-[#F4F7FC] p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto w-full">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Crime Scene Evidence Analysis</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Analyze evidence, identify patterns and assess incident risk</p>
+        </div>
+        <button
+          onClick={() => setIsNewCaseOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>New Case</span>
+        </button>
+      </div>
+
+      {/* 4 Top KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Cases */}
+        <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Crime Analysis</h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              Multi-factor incident risk assessment and evidence correlation.
-            </p>
+            <span className="text-xs font-medium text-slate-500 block">Total Cases</span>
+            <div className="text-2xl font-bold text-slate-900 mt-1">482</div>
+            <div className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 mt-1">
+              <span>↑ 14%</span>
+            </div>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+            <Folder className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Evidence Analyzed */}
+        <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-500 block">Evidence Analyzed</span>
+            <div className="text-2xl font-bold text-slate-900 mt-1">1,320</div>
+            <div className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 mt-1">
+              <span>↑ 23%</span>
+            </div>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+            <FileCheck className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* High Risk Cases */}
+        <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-500 block">High Risk Cases</span>
+            <div className="text-2xl font-bold text-slate-900 mt-1">68</div>
+            <div className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 mt-1">
+              <span>↑ 6%</span>
+            </div>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Patterns Identified */}
+        <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-500 block">Patterns Identified</span>
+            <div className="text-2xl font-bold text-slate-900 mt-1">24</div>
+            <div className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 mt-1">
+              <span>↑ 18%</span>
+            </div>
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+            <TrendingUp className="w-6 h-6" />
           </div>
         </div>
       </div>
 
-      <div className="p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
-        {/* Presets */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-          <span className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 mb-2.5">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            Standard Incident Archetypes:
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {PRESET_INCIDENTS.map((preset, idx) => (
+      {/* Middle Row: 3-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Column 1: Case Details */}
+        <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 className="text-sm font-bold text-slate-900">Case Details</h2>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-sm text-slate-900">PS-2026-001</span>
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                  Under Investigation
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Incident Type</span>
+                <span className="font-semibold text-slate-800">Theft</span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Date & Time</span>
+                <span className="font-medium text-slate-700">24 Oct 2026, 07:30 PM</span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Location</span>
+                <span className="font-medium text-slate-700">Bus stand, Kakinada</span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Description</span>
+                <p className="text-slate-600 mt-0.5 leading-relaxed">
+                  Mobile phone stolen at bus stand. Suspect seen running towards main road.
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">
+                  AI Risk Assessment
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-red-100 text-red-800">
+                  High Risk (0.87)
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Status</span>
+                <span className="font-semibold text-slate-800">Under Investigation</span>
+              </div>
+
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Assigned To</span>
+                <span className="font-semibold text-slate-800">Inspector R. Kumar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Column 2: Evidence Analysis */}
+        <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold text-slate-900">Evidence Analysis</h2>
+
+            {/* Media Sub-tabs */}
+            <div className="flex border-b border-slate-200 gap-4 text-xs">
               <button
-                key={idx}
-                type="button"
-                onClick={() => loadPreset(preset)}
-                className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 transition-colors text-slate-700"
+                onClick={() => setEvidenceTab('images')}
+                className={`pb-2 font-semibold transition-colors relative ${
+                  evidenceTab === 'images'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
               >
-                {preset.label}
+                Images (3)
               </button>
-            ))}
+              <button
+                onClick={() => setEvidenceTab('videos')}
+                className={`pb-2 font-semibold transition-colors relative ${
+                  evidenceTab === 'videos'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Videos (1)
+              </button>
+              <button
+                onClick={() => setEvidenceTab('documents')}
+                className={`pb-2 font-semibold transition-colors relative ${
+                  evidenceTab === 'documents'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Documents (2)
+              </button>
+            </div>
+
+            {/* Thumbnails Gallery */}
+            <div className="grid grid-cols-4 gap-2.5">
+              {SAMPLE_EVIDENCE.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 flex flex-col group cursor-pointer"
+                >
+                  <div className="h-16 overflow-hidden">
+                    <img
+                      src={item.url}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <span className="p-1 text-[9px] font-mono text-slate-600 truncate block bg-white">
+                    {item.name}
+                  </span>
+                </div>
+              ))}
+              <div className="border border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center p-2 text-center hover:bg-slate-50 cursor-pointer">
+                <Plus className="w-4 h-4 text-slate-400 mb-0.5" />
+                <span className="text-[10px] font-medium text-slate-500">Upload More</span>
+              </div>
+            </div>
+
+            {/* AI Analysis Results Breakdown */}
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <span className="text-xs font-bold text-slate-900 block mb-2">AI Analysis Results</span>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <User className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="font-medium text-slate-700">Person Detection</span>
+                </div>
+                <span className="text-slate-800 font-semibold">1 person detected (confidence: 92%)</span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Package className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="font-medium text-slate-700">Object Detection</span>
+                </div>
+                <span className="text-slate-800 font-semibold">Mobile phone, backpack (confidence: 88%)</span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-3.5 h-3.5 text-purple-600" />
+                  <span className="font-medium text-slate-700">Scene Analysis</span>
+                </div>
+                <span className="text-slate-800 font-semibold">Bus stand environment, evening time</span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="font-medium text-slate-700">Text Extraction</span>
+                </div>
+                <span className="text-slate-800 font-semibold">Phone receipt details detected</span>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="font-medium text-slate-700">Face Similarity</span>
+                </div>
+                <span className="text-slate-800 font-semibold">Possible match in database (72%)</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Form and Results Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Input Console */}
-          <div className="lg:col-span-6 bg-white rounded-lg border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <span>Crime Scene Evidence Intake Console</span>
-                </h3>
-              </div>
+        {/* Column 3: Incident Risk Assessment & Similar Cases */}
+        <div className="lg:col-span-4 space-y-6 flex flex-col justify-between">
+          {/* Incident Risk Assessment Card */}
+          <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm">
+            <h2 className="text-sm font-bold text-slate-900 mb-3">Incident Risk Assessment</h2>
 
-              <form onSubmit={handleAnalyze} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Incident Identifier
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      value={incidentId}
-                      onChange={(e) => setIncidentId(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Location / Sector
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    First Responder Narrative / Incident Report
-                  </label>
-                  <textarea
-                    rows={4}
-                    required
-                    placeholder="Enter full narrative of the scene observations..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    value={narrative}
-                    onChange={(e) => setNarrative(e.target.value)}
+            <div className="flex items-center gap-6 mb-4">
+              {/* Circular Gauge */}
+              <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="#F1F5F9" strokeWidth="12" />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="none"
+                    stroke="#EF4444"
+                    strokeWidth="12"
+                    strokeDasharray="208 238"
+                    strokeDashoffset="0"
+                    strokeLinecap="round"
                   />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-lg font-bold text-slate-900">0.87</span>
+                  <span className="text-[9px] font-bold text-red-600 uppercase">High Risk</span>
                 </div>
-
-                {/* Evidence Tags Picker */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-blue-600" />
-                    Corroborating Evidence Items (Click to toggle):
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {AVAILABLE_EVIDENCE_ITEMS.map((item) => {
-                      const selected = selectedEvidence.includes(item.id);
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => toggleEvidence(item.id)}
-                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
-                            selected
-                              ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
-                              : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-[11px] text-slate-400">
-                    Selected Evidence Factors: {selectedEvidence.length}
-                  </span>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs font-semibold rounded-md shadow-sm transition-colors"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Correlating Evidence...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>Run Evidence Correlation</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {errorMsg && (
-              <div className="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-                <span>{errorMsg}</span>
               </div>
-            )}
+
+              {/* Factors */}
+              <div className="flex-1 space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Severity of crime</span>
+                  <span className="font-bold text-red-600">0.9</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Location risk</span>
+                  <span className="font-bold text-orange-600">0.8</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Time of incident</span>
+                  <span className="font-bold text-amber-600">0.7</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Victim vulnerability</span>
+                  <span className="font-bold text-amber-600">0.6</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Repeat incidents</span>
+                  <span className="font-bold text-amber-600">0.6</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Results Console */}
-          <div className="lg:col-span-6 bg-white rounded-lg border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                  <Crosshair className="w-4 h-4 text-blue-600" />
-                  <span>Investigative Intelligence Brief</span>
-                </h3>
-              </div>
+          {/* Similar Cases Card */}
+          <div className="bg-white rounded-xl border border-slate-200/80 p-6 shadow-sm flex-1">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-slate-900">Similar Cases</h2>
+              <span className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer">
+                View All →
+              </span>
+            </div>
 
-              {!result ? (
-                <EmptyState
-                  title="Awaiting Incident Intake"
-                  description="Submit an incident narrative and tag evidence items or select a preset archetype above."
-                />
-              ) : (
-                <div className="space-y-4">
-                  {/* Risk Level Banner */}
-                  <div className={`p-4 rounded-lg border ${getRiskStyle(result.risk_level).card} space-y-2`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <BadgeAlert className="w-5 h-5 text-red-600" />
-                        <span className="text-sm font-bold text-slate-900">
-                          {result.risk_level.toUpperCase()} INCIDENT RISK
-                        </span>
-                      </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRiskStyle(result.risk_level).badge}`}>
-                        {result.incident_id}
-                      </span>
-                    </div>
-
-                    {/* Gauges Row */}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      <div className="p-2.5 rounded bg-white border border-slate-200">
-                        <span className="text-[10px] uppercase text-slate-400 font-semibold block">
-                          Escalation Risk Score
-                        </span>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-base font-mono font-bold text-red-700">
-                            {(result.escalation_score * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full ${getRiskStyle(result.risk_level).barColor}`}
-                            style={{ width: `${Math.min(100, Math.max(10, result.escalation_score * 100))}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded bg-white border border-slate-200">
-                        <span className="text-[10px] uppercase text-slate-400 font-semibold block">
-                          Corroboration Index
-                        </span>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-base font-mono font-bold text-blue-700">
-                            {(result.corroboration_score * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-1.5">
-                          <div
-                            className="bg-blue-600 h-1.5 rounded-full"
-                            style={{ width: `${Math.min(100, Math.max(10, result.corroboration_score * 100))}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
+            <div className="space-y-2.5">
+              {SIMILAR_CASES.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-3 rounded-lg border border-slate-100 hover:border-slate-200 bg-slate-50/50 flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-mono font-bold text-blue-600 block">{item.id}</span>
+                    <span className="text-xs font-medium text-slate-800">{item.title}</span>
                   </div>
-
-                  {/* Pattern & Modus Operandi Indicators */}
-                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 text-xs">
-                    <span className="font-semibold text-slate-800 block mb-2">
-                      Modus Operandi (M.O.) Pattern Indicators:
-                    </span>
-                    <ul className="space-y-1.5">
-                      {result.pattern_indicators.map((pat, idx) => (
-                        <li key={idx} className="flex items-start gap-1.5 text-slate-700 text-[11px]">
-                          <span className="text-blue-600 font-bold">•</span>
-                          <span>{pat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Detective Guidance */}
-                  <div className="p-3.5 rounded-lg bg-blue-50/60 border border-blue-200 text-xs space-y-1.5">
-                    <span className="font-semibold text-blue-950 block">
-                      Lead Investigator Decision-Support Guidance:
-                    </span>
-                    <p className="text-blue-900 leading-relaxed text-[11px]">
-                      {result.investigator_guidance}
-                    </p>
-
-                    {result.corroboration_notes.length > 0 && (
-                      <div className="pt-2 border-t border-blue-200/60">
-                        <span className="font-semibold text-blue-900 block text-[11px] mb-1">
-                          Corroborating Evidence Action Steps:
-                        </span>
-                        <ul className="space-y-1 text-blue-800 text-[11px]">
-                          {result.corroboration_notes.map((note, idx) => (
-                            <li key={idx} className="flex items-start gap-1.5">
-                              <span className="text-blue-600">→</span>
-                              <span>{note}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {item.match}% match
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* New Case Intake Modal */}
+      {isNewCaseOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Register New Investigation Case</h3>
+              <button
+                onClick={() => setIsNewCaseOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCase} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Case Title</label>
+                <input
+                  type="text"
+                  required
+                  value={caseTitle}
+                  onChange={(e) => setCaseTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Crime Location</label>
+                <input
+                  type="text"
+                  required
+                  value={caseLocation}
+                  onChange={(e) => setCaseLocation(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Incident Narrative & Clues</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={caseNarrative}
+                  onChange={(e) => setCaseNarrative(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewCaseOpen(false)}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAnalyzing}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Correlating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Analyze & Save</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

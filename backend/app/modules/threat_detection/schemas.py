@@ -23,4 +23,5 @@ class ThreatDetectionResult(BaseModel):
     zone_id: str = Field("DATA-CENTER-ZONE-B")
     sensor_type: str = Field("cctv_motion_badge_reader")
     recommended_playbook: List[str] = Field(default_factory=list)
+    vision_analysis: Optional[Dict[str, Any]] = Field(default=None, description="Detailed visual scene breakdown for image inputs")
     model_version: str = Field("1.0.0")
