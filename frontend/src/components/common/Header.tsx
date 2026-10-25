@@ -15,6 +15,8 @@ import {
   Activity,
   FileText,
   RotateCcw,
+  AlertTriangle,
+  Scale,
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -27,7 +29,9 @@ export interface SystemNotification {
   title: string;
   message: string;
   timestamp: string;
-  type: 'info' | 'success' | 'system';
+  type: 'threat' | 'complaint' | 'identity' | 'governance' | 'info' | 'success' | 'system';
+  link?: string;
+  unread?: boolean;
 }
 
 export interface OfficerProfileData {
@@ -53,24 +57,39 @@ const DEFAULT_OFFICER: OfficerProfileData = {
 const INITIAL_NOTIFICATIONS: SystemNotification[] = [
   {
     id: 'notif-1',
-    title: 'Platform AI Services Operational',
-    message: 'All 5 analytical and decision-support models are connected and ready.',
-    timestamp: 'Just now',
-    type: 'success',
+    title: '3 high severity threat alerts need review',
+    message: 'Check the latest alerts in Threat Detection.',
+    timestamp: '1 hour ago',
+    type: 'threat',
+    link: '/threat-detection',
+    unread: true,
   },
   {
     id: 'notif-2',
-    title: 'FastAPI Intelligence Gateway Active',
-    message: 'Backend server connection verified on 127.0.0.1:8000.',
-    timestamp: '5m ago',
-    type: 'info',
+    title: '12 new complaints pending classification',
+    message: 'Review and assign cases in Complaint Classification.',
+    timestamp: '3 hours ago',
+    type: 'complaint',
+    link: '/complaints',
+    unread: true,
   },
   {
     id: 'notif-3',
-    title: 'System Diagnostics Passed',
-    message: 'All module endpoints healthy with zero critical service warnings.',
-    timestamp: '15m ago',
-    type: 'system',
+    title: 'Identity match suggestions available',
+    message: '5 possible duplicate records flagged.',
+    timestamp: '5 hours ago',
+    type: 'identity',
+    link: '/identity',
+    unread: true,
+  },
+  {
+    id: 'notif-4',
+    title: 'Monthly compliance report ready',
+    message: 'Access the Governance & Compliance section.',
+    timestamp: '1 day ago',
+    type: 'governance',
+    link: '/governance',
+    unread: true,
   },
 ];
 
@@ -134,6 +153,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
+  }, []);
+
+  // Listen for test/new notifications dispatched from Settings or other modules
+  useEffect(() => {
+    const handleNewNotif = (event: Event) => {
+      const customEvent = event as CustomEvent<SystemNotification>;
+      if (customEvent.detail) {
+        setNotifications((prev) => [customEvent.detail, ...prev]);
+        setIsNotificationsOpen(true);
+      }
+    };
+    window.addEventListener('psip-new-notification', handleNewNotif);
+    return () => window.removeEventListener('psip-new-notification', handleNewNotif);
   }, []);
 
   const toggleNotifications = () => {
@@ -227,28 +259,40 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
           {isNotificationsOpen && (
             <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-200/90 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
               {/* Header */}
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold text-slate-800 tracking-tight">Notifications</h3>
+                  <h3 className="text-sm font-bold text-slate-900 tracking-tight">Notifications</h3>
                   {notifications.length > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
-                      {notifications.length} unread
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+                      {notifications.length}
                     </span>
                   )}
                 </div>
-                {notifications.length > 0 && (
+                <div className="flex items-center gap-2.5">
                   <button
                     type="button"
-                    onClick={clearAllNotifications}
-                    className="text-[11px] font-medium text-slate-500 hover:text-blue-600 transition-colors"
+                    onClick={() => {
+                      setIsNotificationsOpen(false);
+                      navigate('/settings?tab=notifications');
+                    }}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
                   >
-                    Clear All
+                    View All
                   </button>
-                )}
+                  {notifications.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAllNotifications}
+                      className="text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Notifications List or Empty State */}
-              <div className="max-h-[340px] overflow-y-auto divide-y divide-slate-100">
+              <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
                 {notifications.length === 0 ? (
                   <div className="py-10 px-6 text-center">
                     <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
@@ -260,49 +304,95 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                     </p>
                   </div>
                 ) : (
-                  notifications.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-3.5 hover:bg-slate-50/80 transition-colors flex items-start gap-3 relative group"
-                    >
-                      <div className="mt-0.5 shrink-0">
-                        {item.type === 'success' ? (
-                          <div className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </div>
-                        ) : item.type === 'system' ? (
-                          <div className="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
-                            <ShieldCheck className="w-4 h-4" />
-                          </div>
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <Info className="w-4 h-4" />
-                          </div>
-                        )}
-                      </div>
+                  notifications.map((item) => {
+                    const iconNode = (() => {
+                      switch (item.type) {
+                        case 'threat':
+                          return (
+                            <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                              <AlertTriangle className="w-4 h-4" />
+                            </div>
+                          );
+                        case 'complaint':
+                          return (
+                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                          );
+                        case 'identity':
+                          return (
+                            <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                              <User className="w-4 h-4" />
+                            </div>
+                          );
+                        case 'governance':
+                          return (
+                            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                              <Scale className="w-4 h-4" />
+                            </div>
+                          );
+                        case 'success':
+                          return (
+                            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </div>
+                          );
+                        case 'system':
+                          return (
+                            <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                              <ShieldCheck className="w-4 h-4" />
+                            </div>
+                          );
+                        default:
+                          return (
+                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                              <Info className="w-4 h-4" />
+                            </div>
+                          );
+                      }
+                    })();
 
-                      <div className="flex-1 pr-4">
-                        <h4 className="text-xs font-semibold text-slate-900 leading-snug">
-                          {item.title}
-                        </h4>
-                        <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                          {item.message}
-                        </p>
-                        <span className="text-[10px] text-slate-400 mt-1 block font-mono">
-                          {item.timestamp}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => dismissNotification(item.id)}
-                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600 p-1 transition-opacity absolute top-3 right-3"
-                        title="Dismiss"
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          if (item.link) {
+                            setIsNotificationsOpen(false);
+                            navigate(item.link);
+                          }
+                        }}
+                        className={`p-3.5 hover:bg-slate-50 transition-colors flex items-start gap-3 relative group cursor-pointer ${
+                          item.unread ? 'bg-blue-50/15' : ''
+                        }`}
                       >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
+                        <div className="mt-0.5 shrink-0">{iconNode}</div>
+
+                        <div className="flex-1 pr-4">
+                          <h4 className="text-xs font-semibold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                            {item.message}
+                          </p>
+                          <span className="text-[10px] text-slate-400 mt-1 block font-medium">
+                            {item.timestamp}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissNotification(item.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600 p-1 transition-opacity absolute top-3 right-3"
+                          title="Dismiss"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
@@ -316,11 +406,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobile }) => {
                   type="button"
                   onClick={() => {
                     setIsNotificationsOpen(false);
-                    navigate('/system-status');
+                    navigate('/settings?tab=notifications');
                   }}
                   className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
                 >
-                  System Status
+                  Notification Preferences
                 </button>
               </div>
             </div>

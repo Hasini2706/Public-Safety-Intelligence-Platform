@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Scale,
   Shield,
@@ -22,6 +22,7 @@ import {
   Eye,
   Trash2,
   Paperclip,
+  ChevronDown,
 } from 'lucide-react';
 
 export interface EvidenceItem {
@@ -341,6 +342,22 @@ export const GovernancePage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('All Categories');
   const [riskFilter, setRiskFilter] = useState<string>('All Risk Levels');
   const [locationFilter, setLocationFilter] = useState<string>('All Locations');
+  const [selectedDateRange, setSelectedDateRange] = useState<string>('All Dates');
+  const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const dateRangeRef = useRef<HTMLDivElement>(null);
+
+  // Close Date Range dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (dateRangeRef.current && !dateRangeRef.current.contains(e.target as Node)) {
+        setIsDateRangeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   // Modal states
   const [isNewComplaintOpen, setIsNewComplaintOpen] = useState(false);
@@ -374,6 +391,46 @@ export const GovernancePage: React.FC = () => {
     if (statusFilter !== 'All Status' && c.status !== statusFilter) return false;
     if (categoryFilter !== 'All Categories' && c.classification !== categoryFilter) return false;
     if (riskFilter !== 'All Risk Levels' && c.riskLevel !== riskFilter) return false;
+
+    // Location Filter
+    if (locationFilter === 'Downtown') {
+      const match = c.summary.toLowerCase().includes('bus') || c.fullDetails.toLowerCase().includes('bus') || c.summary.toLowerCase().includes('theft');
+      if (!match) return false;
+    } else if (locationFilter === 'Industrial') {
+      const match = c.summary.toLowerCase().includes('industrial') || c.summary.toLowerCase().includes('noise') || c.fullDetails.toLowerCase().includes('corridor');
+      if (!match) return false;
+    } else if (locationFilter === 'Campus') {
+      const match = c.summary.toLowerCase().includes('school') || c.summary.toLowerCase().includes('college') || c.summary.toLowerCase().includes('campus');
+      if (!match) return false;
+    }
+
+    // Date Range Filter
+    if (selectedDateRange === 'Today') {
+      if (!c.date.includes('24 Oct')) return false;
+    } else if (selectedDateRange === 'Yesterday') {
+      if (!c.date.includes('23 Oct')) return false;
+    } else if (selectedDateRange === 'Last 3 Days') {
+      const isMatch = c.date.includes('24 Oct') || c.date.includes('23 Oct') || c.date.includes('22 Oct');
+      if (!isMatch) return false;
+    } else if (selectedDateRange === 'October 2026') {
+      if (!c.date.includes('Oct 2026')) return false;
+    } else if (selectedDateRange === 'Custom Range') {
+      if (customStartDate || customEndDate) {
+        const dayMatch = c.date.match(/(\d+)\s+Oct\s+2026/);
+        if (dayMatch) {
+          const caseDay = parseInt(dayMatch[1], 10);
+          if (customStartDate) {
+            const startDay = new Date(customStartDate).getDate();
+            if (caseDay < startDay) return false;
+          }
+          if (customEndDate) {
+            const endDay = new Date(customEndDate).getDate();
+            if (caseDay > endDay) return false;
+          }
+        }
+      }
+    }
+
     return true;
   });
 
@@ -773,13 +830,106 @@ export const GovernancePage: React.FC = () => {
                 <option value="Campus">North Campus</option>
               </select>
 
-              <button
-                type="button"
-                className="col-span-2 sm:col-span-4 lg:col-span-1 inline-flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                <span>Select Date Range</span>
-              </button>
+              {/* Interactive Date Range Selector Dropdown */}
+              <div className="col-span-2 sm:col-span-4 lg:col-span-1 relative" ref={dateRangeRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsDateRangeOpen(!isDateRangeOpen)}
+                  className={`w-full inline-flex items-center justify-between gap-1.5 border rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer shadow-2xs ${
+                    selectedDateRange !== 'All Dates'
+                      ? 'bg-blue-50 border-blue-300 text-blue-700 font-semibold'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5 truncate">
+                    <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                    <span className="truncate">{selectedDateRange === 'All Dates' ? 'Select Date Range' : selectedDateRange}</span>
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${isDateRangeOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isDateRangeOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Select Date Range
+                    </div>
+                    <div className="py-1">
+                      {[
+                        { label: 'All Dates', value: 'All Dates' },
+                        { label: 'Today (24 Oct 2026)', value: 'Today' },
+                        { label: 'Yesterday (23 Oct 2026)', value: 'Yesterday' },
+                        { label: 'Last 3 Days (22 - 24 Oct)', value: 'Last 3 Days' },
+                        { label: 'October 2026 (Full Month)', value: 'October 2026' },
+                        { label: 'Custom Range...', value: 'Custom Range' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDateRange(opt.value);
+                            if (opt.value !== 'Custom Range') {
+                              setIsDateRangeOpen(false);
+                            }
+                          }}
+                          className={`w-full text-left px-3.5 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                            selectedDateRange === opt.value
+                              ? 'font-semibold text-blue-600 bg-blue-50/60'
+                              : 'text-slate-700'
+                          }`}
+                        >
+                          <span>{opt.label}</span>
+                          {selectedDateRange === opt.value && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                        </button>
+                      ))}
+                    </div>
+
+                    {selectedDateRange === 'Custom Range' && (
+                      <div className="p-3 border-t border-slate-100 bg-slate-50/80 space-y-2">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-600 mb-1">Start Date</label>
+                          <input
+                            type="date"
+                            value={customStartDate}
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs text-slate-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-600 mb-1">End Date</label>
+                          <input
+                            type="date"
+                            value={customEndDate}
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs text-slate-800"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsDateRangeOpen(false)}
+                          className="w-full mt-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors"
+                        >
+                          Apply Custom Range
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedDateRange !== 'All Dates' && (
+                      <div className="px-3 py-1.5 border-t border-slate-100 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedDateRange('All Dates');
+                            setIsDateRangeOpen(false);
+                          }}
+                          className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 transition-colors cursor-pointer"
+                        >
+                          Clear Date Filter
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Complaints Table */}

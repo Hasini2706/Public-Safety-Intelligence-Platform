@@ -337,10 +337,6 @@ export const ComplaintsPage: React.FC = () => {
                 </div>
               )}
             </div>
-
-            <div className="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400">
-              Responsible AI Note: Citizen complaint classifications are decision-support indicators. Human review is required before administrative dispatch.
-            </div>
           </div>
         </div>
       </div>

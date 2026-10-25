@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Settings,
   Users,
@@ -206,7 +207,21 @@ const INITIAL_AUDIT_LOGS: AuditLogItem[] = [
 ];
 
 export const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const tabQuery = searchParams.get('tab') as SettingsTab;
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    tabQuery && ['general', 'users', 'storage', 'security', 'notifications', 'audit'].includes(tabQuery)
+      ? tabQuery
+      : 'general'
+  );
+
+  useEffect(() => {
+    const tabParam = new URLSearchParams(location.search).get('tab') as SettingsTab;
+    if (tabParam && ['general', 'users', 'storage', 'security', 'notifications', 'audit'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
 
   // 1. Platform Information State
   const [platformName, setPlatformName] = useState('Public Safety AI Intelligence Platform');
@@ -372,8 +387,41 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleSendTestNotification = () => {
-    setNotificationToast('🚨 Test Notification: Dispatch priority channel is active and functioning nominally.');
-    setTimeout(() => setNotificationToast(null), 4000);
+    // 1. Dispatch custom event to window so the Header Bell Symbol receives it immediately
+    const testNotif = {
+      id: `test-notif-${Date.now()}`,
+      title: '🚨 Test Notification Received',
+      message: 'Dispatch priority channel is active and functioning nominally.',
+      timestamp: 'Just now',
+      type: 'system',
+      link: '/settings?tab=notifications',
+      unread: true,
+    };
+    window.dispatchEvent(
+      new CustomEvent('psip-new-notification', { detail: testNotif })
+    );
+
+    // 2. Play audible confirmation tone
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+    } catch {
+      // AudioContext fallback
+    }
+
+    // 3. Set toast alert in SettingsPage
+    setNotificationToast('🚨 Test Notification Sent: Alert received in Notification Bell symbol at the top right!');
+    setTimeout(() => setNotificationToast(null), 5000);
   };
 
   const filteredAuditLogs = auditLogs.filter((log) => {
