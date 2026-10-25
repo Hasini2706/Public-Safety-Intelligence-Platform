@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Info,
   FileText,
+  TrendingUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,6 +22,7 @@ export const DashboardPage: React.FC = () => {
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [hoveredTrendDay, setHoveredTrendDay] = useState<{ day: string; count: number } | null>(null);
+  const [hoveredYear, setHoveredYear] = useState<{ year: string; count: number } | null>(null);
 
   const dateOptions = [
     'Oct 1, 2026 - Oct 31, 2026',
@@ -56,6 +58,16 @@ export const DashboardPage: React.FC = () => {
     { date: 'Oct 29', count: 33, x: 265, y: 95 },
     { date: 'Oct 30', count: 46, x: 325, y: 68 },
     { date: 'Oct 31', count: 60, x: 385, y: 40 },
+  ];
+
+  // No. of complaints over years (Bar graph)
+  const yearlyComplaintsData = [
+    { year: '2021', count: 1420, label: '1.4k' },
+    { year: '2022', count: 1890, label: '1.9k' },
+    { year: '2023', count: 2340, label: '2.3k' },
+    { year: '2024', count: 2780, label: '2.8k' },
+    { year: '2025', count: 3150, label: '3.2k' },
+    { year: '2026', count: 3620, label: '3.6k' },
   ];
 
   // SVG Donut Calculations
@@ -313,7 +325,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* Card B: Crime Trend (Last 7 Days) */}
-          <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
+          <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-bold text-slate-800 tracking-tight">
                 Crime Trend (Last 7 Days)
@@ -393,61 +405,115 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card C: Crime Hotspots */}
-          <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
-            <h2 className="text-sm font-bold text-slate-800 tracking-tight mb-2">
-              Crime Hotspots
-            </h2>
-
-            {/* Simulated Geographic Heatmap Canvas */}
-            <div className="relative w-full h-40 rounded-lg overflow-hidden border border-slate-200/70 bg-[#EEF2F6]">
-              {/* Street grid background lines */}
-              <svg className="absolute inset-0 w-full h-full stroke-white/80" strokeWidth="2.5">
-                <line x1="0" y1="40" x2="100%" y2="40" />
-                <line x1="0" y1="85" x2="100%" y2="85" />
-                <line x1="0" y1="125" x2="100%" y2="125" />
-                <line x1="45" y1="0" x2="45" y2="100%" />
-                <line x1="120" y1="0" x2="120" y2="100%" />
-                <line x1="190" y1="0" x2="190" y2="100%" />
-                <line x1="250" y1="0" x2="250" y2="100%" />
-                {/* Diagonal boulevard */}
-                <line x1="0" y1="120" x2="260" y2="10" strokeWidth="4" stroke="#FFFFFF" />
-              </svg>
-
-              {/* Heatmap Glow Spots matching photo positions */}
-              {/* Upper-right High cluster */}
-              <div className="absolute top-4 right-6 w-14 h-14 rounded-full bg-red-500/70 blur-md pointer-events-none" />
-              <div className="absolute top-6 right-8 w-8 h-8 rounded-full bg-amber-400/80 blur-sm pointer-events-none" />
-
-              {/* Mid-left High cluster */}
-              <div className="absolute top-12 left-8 w-14 h-14 rounded-full bg-red-500/70 blur-md pointer-events-none" />
-              <div className="absolute top-14 left-10 w-7 h-7 rounded-full bg-amber-400/80 blur-sm pointer-events-none" />
-
-              {/* Lower-right High cluster */}
-              <div className="absolute bottom-5 right-12 w-14 h-14 rounded-full bg-red-500/70 blur-md pointer-events-none" />
-              <div className="absolute bottom-7 right-14 w-6 h-6 rounded-full bg-amber-400/80 blur-sm pointer-events-none" />
-
-              {/* Center Medium cluster */}
-              <div className="absolute top-12 left-28 w-10 h-10 rounded-full bg-amber-400/60 blur-md pointer-events-none" />
-
-              {/* Lower-left Low/Medium cluster */}
-              <div className="absolute bottom-6 left-12 w-10 h-10 rounded-full bg-emerald-400/60 blur-md pointer-events-none" />
+          {/* Card C: Complaints Over Years (Bar Graph) */}
+          <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-sm font-bold text-slate-800 tracking-tight">
+                  Complaints Over Years
+                </h2>
+                <p className="text-[11px] text-slate-400">Annual complaints intake trend</p>
+              </div>
+              {hoveredYear ? (
+                <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition-all">
+                  {hoveredYear.year}: {hoveredYear.count.toLocaleString()} cases
+                </span>
+              ) : (
+                <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>+14.8% YoY</span>
+                </div>
+              )}
             </div>
 
-            {/* Heatmap Legend matching photo */}
-            <div className="flex items-center justify-start gap-4 mt-3 text-[11px] text-slate-600 font-medium">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#4ADE80]" />
-                <span>Low</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FBBF24]" />
-                <span>Medium</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
-                <span>High</span>
-              </div>
+            {/* SVG Bar Chart */}
+            <div className="relative w-full h-44">
+              <svg className="w-full h-full overflow-visible" viewBox="0 0 360 140">
+                <defs>
+                  <linearGradient id="yearBarGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3B82F6" />
+                    <stop offset="100%" stopColor="#1D4ED8" />
+                  </linearGradient>
+                  <linearGradient id="yearBarHoverGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#60A5FA" />
+                    <stop offset="100%" stopColor="#2563EB" />
+                  </linearGradient>
+                </defs>
+
+                {/* Horizontal Grid lines & Y-axis labels */}
+                <line x1="30" y1="20" x2="350" y2="20" stroke="#F1F5F9" strokeWidth="1" />
+                <text x="22" y="24" textAnchor="end" className="text-[9px] fill-slate-400 font-medium">4k</text>
+
+                <line x1="30" y1="50" x2="350" y2="50" stroke="#F1F5F9" strokeWidth="1" />
+                <text x="22" y="54" textAnchor="end" className="text-[9px] fill-slate-400 font-medium">3k</text>
+
+                <line x1="30" y1="80" x2="350" y2="80" stroke="#F1F5F9" strokeWidth="1" />
+                <text x="22" y="84" textAnchor="end" className="text-[9px] fill-slate-400 font-medium">2k</text>
+
+                <line x1="30" y1="105" x2="350" y2="105" stroke="#F1F5F9" strokeWidth="1" />
+                <text x="22" y="109" textAnchor="end" className="text-[9px] fill-slate-400 font-medium">1k</text>
+
+                <line x1="30" y1="125" x2="350" y2="125" stroke="#E2E8F0" strokeWidth="1" />
+                <text x="22" y="128" textAnchor="end" className="text-[9px] fill-slate-400 font-medium">0</text>
+
+                {/* Bars */}
+                {yearlyComplaintsData.map((item, idx) => {
+                  const isHovered = hoveredYear?.year === item.year;
+                  const barHeight = Math.round((item.count / 4000) * 105);
+                  const barY = 125 - barHeight;
+                  const barX = 45 + idx * 52;
+                  const barWidth = 28;
+
+                  return (
+                    <g key={idx}>
+                      {/* Value label on top of bar */}
+                      <text
+                        x={barX + barWidth / 2}
+                        y={barY - 4}
+                        textAnchor="middle"
+                        className={`text-[8.5px] font-mono font-bold transition-all ${
+                          isHovered ? 'fill-blue-600' : 'fill-slate-500'
+                        }`}
+                      >
+                        {item.label}
+                      </text>
+
+                      {/* Bar Rect */}
+                      <rect
+                        x={barX}
+                        y={barY}
+                        width={barWidth}
+                        height={barHeight}
+                        rx="4"
+                        ry="4"
+                        fill={isHovered ? 'url(#yearBarHoverGrad)' : 'url(#yearBarGrad)'}
+                        className="cursor-pointer transition-all duration-200 hover:opacity-90"
+                        onMouseEnter={() => setHoveredYear({ year: item.year, count: item.count })}
+                        onMouseLeave={() => setHoveredYear(null)}
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* X-axis year labels */}
+            <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium px-4 mt-1 border-t border-slate-100 pt-2">
+              {yearlyComplaintsData.map((item, idx) => {
+                const isHovered = hoveredYear?.year === item.year;
+                return (
+                  <span
+                    key={idx}
+                    className={`cursor-pointer transition-colors ${
+                      isHovered ? 'text-blue-600 font-bold' : 'text-slate-500'
+                    }`}
+                    onMouseEnter={() => setHoveredYear({ year: item.year, count: item.count })}
+                    onMouseLeave={() => setHoveredYear(null)}
+                  >
+                    {item.year}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>
