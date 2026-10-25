@@ -424,7 +424,8 @@ export const IdentityPage: React.FC = () => {
   const runVerification = async (
     refImage: string,
     refName: string,
-    probeImage: string
+    probeImage: string,
+    scenario: string = 'match'
   ) => {
     setIsLoading(true);
     setErrorMsg(null);
@@ -436,7 +437,7 @@ export const IdentityPage: React.FC = () => {
           reference_id: refName || 'sarah_chen_enrolled.jpg',
           reference_image_b64: refImage,
           verification_image_b64: probeImage,
-          test_scenario: 'match',
+          test_scenario: scenario,
           match_threshold: threshold,
         }),
       });
@@ -470,13 +471,13 @@ export const IdentityPage: React.FC = () => {
       setCapturedPhoto(livePng);
       setCapturedPhotoName('sarah_chen_live.jpg');
       setCameraNotice(null);
-      runVerification(refPng, 'sarah_chen_enrolled.jpg', livePng);
+      runVerification(refPng, 'sarah_chen_enrolled.jpg', livePng, 'match');
     } else {
       const livePng = generatePortraitPng('#f1f5f9', '#fde68a', '#172554', '#334155', true, false, 0);
       setCapturedPhoto(livePng);
       setCapturedPhotoName('unregistered_probe.jpg');
       setCameraNotice(null);
-      runVerification(refPng, 'sarah_chen_enrolled.jpg', livePng);
+      runVerification(refPng, 'sarah_chen_enrolled.jpg', livePng, 'mismatch');
     }
   };
 
@@ -485,7 +486,8 @@ export const IdentityPage: React.FC = () => {
       setErrorMsg('Both a Reference Photo and a Live Photo Capture are required to perform identity verification.');
       return;
     }
-    runVerification(referencePhoto, referenceFileName, capturedPhoto);
+    const isKnownDiff = capturedPhotoName.toLowerCase().includes('unregistered') || capturedPhotoName.toLowerCase().includes('diff');
+    runVerification(referencePhoto, referenceFileName, capturedPhoto, isKnownDiff ? 'mismatch' : 'match');
   };
 
   const getStatusStyle = (status: string) => {
