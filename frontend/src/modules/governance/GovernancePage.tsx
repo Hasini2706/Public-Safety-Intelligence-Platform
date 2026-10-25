@@ -595,8 +595,8 @@ export const GovernancePage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                Governance <span className="text-amber-500 font-serif italic">& Compliance</span>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-blue-600">
+                Governance & Compliance
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
