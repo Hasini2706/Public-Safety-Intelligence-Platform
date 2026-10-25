@@ -471,13 +471,11 @@ export const IdentityPage: React.FC = () => {
       setCapturedPhoto(livePng);
       setCapturedPhotoName('sarah_chen_live.jpg');
       setCameraNotice(null);
-      runVerification(refPng, 'sarah_chen_enrolled.jpg', livePng, 'match');
     } else {
       const livePng = generatePortraitPng('#f1f5f9', '#fde68a', '#172554', '#334155', true, false, 0);
       setCapturedPhoto(livePng);
       setCapturedPhotoName('unregistered_probe.jpg');
       setCameraNotice(null);
-      runVerification(refPng, 'sarah_chen_enrolled.jpg', livePng, 'mismatch');
     }
   };
 
@@ -858,28 +856,41 @@ export const IdentityPage: React.FC = () => {
         </div>
 
         {/* Comparison Trigger Button (active when both photos are present) */}
-        {referencePhoto && capturedPhoto && (
-          <div className="flex items-center justify-end pt-2">
-            <button
-              type="button"
-              onClick={handleManualVerify}
-              disabled={isLoading}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-colors"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Comparing Facial Embeddings...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Run Biometric Comparison</span>
-                </>
-              )}
-            </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div>
+            <span className="text-xs sm:text-sm font-semibold text-slate-900 block">
+              Biometric Verification Execution
+            </span>
+            <span className="text-xs text-slate-500">
+              {referencePhoto && capturedPhoto
+                ? 'Both reference and live photos are loaded. Click run to compare facial embeddings.'
+                : 'Please provide both a Reference Photo and a Live Capture Photo to enable comparison.'}
+            </span>
           </div>
-        )}
+
+          <button
+            type="button"
+            onClick={handleManualVerify}
+            disabled={isLoading || !referencePhoto || !capturedPhoto}
+            className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold rounded-xl shadow-xs transition-all ${
+              referencePhoto && capturedPhoto && !isLoading
+                ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:shadow-md'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300/50'
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Comparing Facial Biometrics...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-current" />
+                <span>Run Biometric Comparison</span>
+              </>
+            )}
+          </button>
+        </div>
 
         {/* Error Notice */}
         {errorMsg && (
