@@ -89,12 +89,25 @@ class IdentityVerificationModule(BaseMLModule):
                 cell_cr = cr[r * cell_sz : (r + 1) * cell_sz, c * cell_sz : (c + 1) * cell_sz]
                 cell_mag = mag[r * cell_sz : (r + 1) * cell_sz, c * cell_sz : (c + 1) * cell_sz]
 
+                # LBP micro-texture descriptor
+                cell_h, cell_w = cell_l.shape
+                if cell_h > 4 and cell_w > 4:
+                    center = cell_l[1:-1, 1:-1]
+                    top = (cell_l[:-2, 1:-1] >= center).astype(np.float32)
+                    bottom = (cell_l[2:, 1:-1] >= center).astype(np.float32)
+                    left = (cell_l[1:-1, :-2] >= center).astype(np.float32)
+                    right = (cell_l[1:-1, 2:] >= center).astype(np.float32)
+                    lbp_val = float(np.mean((top + bottom + left + right) * 0.25))
+                else:
+                    lbp_val = 0.5
+
                 feats.extend([
                     float(np.mean(cell_l)),
                     float(np.std(cell_l)),
                     float(np.mean(cell_cb)),
                     float(np.mean(cell_cr)),
                     float(np.mean(cell_mag)),
+                    lbp_val,
                 ])
 
         vec = np.array(feats, dtype=np.float32)

@@ -7,40 +7,62 @@ modus operandi clustering, and investigative decision-support scoring.
 from typing import Any, Dict, List, Optional
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import Ridge
+from sklearn.ensemble import GradientBoostingRegressor
 
 from ml.shared.base_model import BaseMLModule, ModelStatus
 
-# Historical crime archetype training patterns
+# Historical crime archetype training patterns spanning violent, property, financial, and opportunistic crimes
 TRAINING_ARCHETYPES = [
-    # Armed / Violent Incident Patterns (High risk)
-    ("Armed commercial robbery with firearm brandished at clerks", ["weapon_recovered", "ballistic_residue", "surveillance_match"], 0.92, "Armed Commercial Robbery"),
-    ("Gunshots reported during jewelry store heist with shattered glass", ["weapon_recovered", "ballistic_residue", "forced_entry"], 0.88, "Armed Commercial Robbery"),
-    ("Violent warehouse takeover by masked suspects with knives", ["weapon_recovered", "surveillance_match", "vehicle_sighted"], 0.82, "Aggravated Robbery"),
+    # 1. Armed & Violent Incident Patterns (High/Elevated risk: 0.80 - 0.95)
+    ("Armed commercial robbery with firearm brandished at clerks", ["weapon_recovered", "ballistic_residue", "surveillance_match"], 0.94, "Armed Commercial Robbery"),
+    ("Gunshots reported during jewelry store heist with shattered glass", ["weapon_recovered", "ballistic_residue", "forced_entry"], 0.91, "Armed Commercial Robbery"),
+    ("Violent warehouse takeover by masked suspects with tactical weapons", ["weapon_recovered", "surveillance_match", "vehicle_sighted"], 0.88, "Aggravated Robbery"),
+    ("Cash-in-transit armored van ambushed with assault rifles and explosives", ["weapon_recovered", "ballistic_residue", "vehicle_sighted"], 0.96, "Armored Vehicle Ambush"),
+    ("Bank branch hostage situation with armed perpetrators demanding vault access", ["weapon_recovered", "surveillance_match", "forced_entry"], 0.95, "Armed Bank Robbery"),
+    ("Nightclub parking lot shooting leaving multiple victims wounded", ["weapon_recovered", "ballistic_residue"], 0.89, "Violent Assault with Weapon"),
+    ("Home invasion with armed suspects holding residents at gunpoint", ["weapon_recovered", "forced_entry", "dna_sample"], 0.92, "Aggravated Home Invasion"),
 
-    # Sophisticated Burglary / Forced Entry (Elevated risk)
-    ("Nighttime commercial burglary with safe cracked using thermal cutting torches", ["forced_entry", "tool_marks", "insider_badge_usage"], 0.74, "Commercial Burglary"),
-    ("Electronics warehouse perimeter fence cut with hydraulic shears at 3 AM", ["forced_entry", "tool_marks", "vehicle_sighted"], 0.68, "Commercial Burglary"),
-    ("Pharmacy backdoor lock cylinder pried open and narcotics cabinet emptied", ["forced_entry", "tool_marks", "fingerprints_lifted"], 0.65, "Commercial Burglary"),
+    # 2. Sophisticated Burglary & Infrastructure Breaches (Elevated risk: 0.65 - 0.79)
+    ("Nighttime commercial burglary with safe cracked using thermal cutting torches", ["forced_entry", "tool_marks", "insider_badge_usage"], 0.76, "Commercial Safe Burglary"),
+    ("Electronics warehouse perimeter fence cut with hydraulic shears at 3 AM", ["forced_entry", "tool_marks", "vehicle_sighted"], 0.72, "Commercial Burglary"),
+    ("Pharmacy backdoor lock cylinder pried open and narcotics cabinet emptied", ["forced_entry", "tool_marks", "fingerprints_lifted"], 0.69, "Pharmaceutical Theft"),
+    ("Substation control room door breached and copper grounding cables stripped", ["forced_entry", "tool_marks"], 0.74, "Critical Infrastructure Tampering"),
+    ("ATM machine attacked with gas explosive mixture and cash cassette stolen", ["forced_entry", "tool_marks", "surveillance_match"], 0.78, "ATM Explosive Tampering"),
+    ("Data center server rack cages pried open and enterprise SSD drives stolen", ["forced_entry", "insider_badge_usage", "cyber_tampering"], 0.77, "Enterprise Hardware Theft"),
+    ("Art museum skylight cut and alarm system wiring severed with bypass tools", ["forced_entry", "tool_marks", "cyber_tampering"], 0.79, "High-Value Cultural Theft"),
 
-    # Opportunistic / Property Theft (Standard / Moderate risk)
-    ("Construction site copper wiring stripped from outdoor spool over weekend", ["tool_marks", "vehicle_sighted"], 0.42, "Material Theft"),
+    # 3. Cyber-Physical & Insider Exploitation (Moderate risk: 0.50 - 0.64)
+    ("Unauthorized badge cloning used to enter executive finance suite after midnight", ["insider_badge_usage", "cyber_tampering"], 0.63, "Credential Compromise"),
+    ("Industrial SCADA telemetry terminal infected with external USB payload", ["cyber_tampering", "insider_badge_usage"], 0.62, "Cyber-Physical Tampering"),
+    ("Logistics terminal freight dispatch records altered to divert shipping container", ["cyber_tampering"], 0.56, "Cargo Theft & Fraud"),
+    ("Security camera network feed looped while loading dock was accessed", ["cyber_tampering", "surveillance_match"], 0.64, "Surveillance Countermeasures"),
+
+    # 4. Property Theft & Serial Opportunistic Crimes (Moderate/Standard risk: 0.35 - 0.49)
+    ("Construction site copper wiring stripped from outdoor spool over weekend", ["tool_marks", "vehicle_sighted"], 0.45, "Material Theft"),
+    ("Catalytic converters cut from fleet vehicles in commercial parking lot", ["tool_marks", "vehicle_sighted"], 0.44, "Serial Auto Part Theft"),
+    ("Commercial storefront display window smashed and designer apparel grabbed", ["forced_entry", "surveillance_match"], 0.46, "Smash and Grab"),
+    ("Residential construction tools and generators taken from secured trailer", ["forced_entry", "tool_marks"], 0.42, "Tool & Equipment Theft"),
+    ("Motorcycle stolen from public transit parking lot using bypass ignition wires", ["tool_marks", "surveillance_match"], 0.40, "Vehicle Theft"),
+
+    # 5. Petty Theft & Public Order Mischief (Standard risk: 0.15 - 0.34)
     ("Bicycle and power tools taken from unlocked residential garage", ["fingerprints_lifted"], 0.28, "Petty Property Theft"),
     ("Storefront graffiti tagging and broken exterior display sign", ["surveillance_match"], 0.22, "Vandalism / Criminal Mischief"),
     ("Shoplifting of high-value perfume bottles concealed in backpack", ["surveillance_match"], 0.25, "Retail Theft"),
+    ("Public park bench vandalized and bronze plaque unscrewed", ["tool_marks"], 0.20, "Public Property Vandalism"),
+    ("Smartphone pickpocketed from commuter boarding crowded city bus", ["surveillance_match"], 0.32, "Pickpocketing"),
 ]
 
 KNOWN_EVIDENCE_WEIGHTS = {
-    "weapon_recovered": 0.25,
-    "ballistic_residue": 0.22,
-    "dna_sample": 0.18,
-    "forced_entry": 0.14,
+    "weapon_recovered": 0.26,
+    "ballistic_residue": 0.24,
+    "dna_sample": 0.19,
+    "forced_entry": 0.15,
     "tool_marks": 0.12,
-    "surveillance_match": 0.10,
-    "fingerprints_lifted": 0.09,
+    "surveillance_match": 0.11,
+    "fingerprints_lifted": 0.10,
     "vehicle_sighted": 0.08,
-    "cyber_tampering": 0.15,
-    "insider_badge_usage": 0.16,
+    "cyber_tampering": 0.16,
+    "insider_badge_usage": 0.17,
 }
 
 
@@ -50,19 +72,28 @@ class CrimeAnalysisModule(BaseMLModule):
     def __init__(self, version: str = "1.0.0"):
         super().__init__(module_name="crime_analysis", version=version)
         self.vectorizer: Optional[TfidfVectorizer] = None
-        self.regressor: Optional[Ridge] = None
+        self.regressor: Optional[GradientBoostingRegressor] = None
         self._train_engine()
 
     def _train_engine(self):
-        """Fit NLP narrative feature extractor and risk regressor."""
+        """Fit NLP narrative feature extractor and Gradient Boosting risk regressor."""
         narratives = [n for n, _, _, _ in TRAINING_ARCHETYPES]
         scores = [s for _, _, s, _ in TRAINING_ARCHETYPES]
 
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=1000)
+        self.vectorizer = TfidfVectorizer(
+            ngram_range=(1, 3),
+            sublinear_tf=True,
+            max_features=2500
+        )
         X = self.vectorizer.fit_transform(narratives)
 
-        self.regressor = Ridge(alpha=1.0)
-        self.regressor.fit(X, scores)
+        self.regressor = GradientBoostingRegressor(
+            n_estimators=120,
+            learning_rate=0.06,
+            max_depth=3,
+            random_state=42
+        )
+        self.regressor.fit(X.toarray(), scores)
         self._status = ModelStatus.READY
 
     def load_model(self, artifact_path: Optional[str] = None) -> bool:
@@ -92,16 +123,16 @@ class CrimeAnalysisModule(BaseMLModule):
         evidence = set(data["evidence_items"])
         narrative = data["narrative"]
 
-        # Base narrative risk score via NLP
+        # Base narrative risk score via calibrated NLP
         if narrative:
-            feat = self.vectorizer.transform([narrative])
+            feat = self.vectorizer.transform([narrative]).toarray()
             nlp_score = float(self.regressor.predict(feat)[0])
         else:
             nlp_score = 0.35
 
         # Evidence weight sum
-        evidence_score = sum(KNOWN_EVIDENCE_WEIGHTS.get(item, 0.05) for item in evidence)
-        composite_score = min(0.98, max(0.10, round(0.55 * nlp_score + 0.45 * evidence_score, 3)))
+        evidence_score = sum(KNOWN_EVIDENCE_WEIGHTS.get(item, 0.06) for item in evidence)
+        composite_score = min(0.98, max(0.12, round(0.50 * nlp_score + 0.50 * evidence_score, 3)))
 
         # Pattern identification & Modus Operandi (M.O.)
         pattern_indicators: List[str] = []
@@ -149,7 +180,7 @@ class CrimeAnalysisModule(BaseMLModule):
                 "Process standard crime scene documentation without urgent operational mobilization."
             )
 
-        corroboration_score = min(1.0, max(0.15, round(len(evidence) * 0.22 + 0.20, 2)))
+        corroboration_score = min(1.0, max(0.18, round(len(evidence) * 0.22 + 0.20, 2)))
 
         return {
             "incident_id": data["incident_id"],

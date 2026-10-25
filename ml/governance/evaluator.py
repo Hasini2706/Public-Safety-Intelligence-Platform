@@ -10,34 +10,53 @@ from sklearn.ensemble import GradientBoostingRegressor
 
 from ml.shared.base_model import BaseMLModule, ModelStatus
 
-# Statutory Regulatory Thresholds (DGMS Coal Mines Regulations & MSHA 30 CFR)
-CH4_PERMISSIBLE_MAX = 1.0       # 1.0% / ppm threshold
-CH4_CRITICAL_THRESHOLD = 1.5    # Mandatory immediate evacuation above 1.5%
-DUST_PERMISSIBLE_MAX = 3.0      # 3.0 mg/m3 respirable dust
-DUST_CRITICAL_THRESHOLD = 5.5   # Combustible coal dust explosion hazard
+# Statutory Regulatory Thresholds (DGMS Coal Mines Regulations 2017 & MSHA 30 CFR)
+CH4_PERMISSIBLE_MAX = 1.0       # 1.0% / ppm operating limit
+CH4_STATUTORY_INTERLOCK = 1.25  # 1.25% DGMS power trip threshold
+CH4_CRITICAL_THRESHOLD = 1.5    # 1.50% mandatory evacuation
+DUST_PERMISSIBLE_MAX = 3.0      # 3.0 mg/m3 respirable dust limit
+DUST_CRITICAL_THRESHOLD = 5.0   # Combustible coal dust explosion hazard
 AIRFLOW_MINIMUM_REQUIRED = 30.0 # 30.0 m3/s minimum fresh intake airflow
 SEISMIC_BURST_THRESHOLD = 0.05  # 0.05g microseismic vibration (rockburst precursor)
 INSPECTION_WINDOW_DAYS = 30     # 30 days statutory audit interval
 
 
-def _generate_synthetic_mine_data(n_samples: int = 500) -> tuple[np.ndarray, np.ndarray]:
-    """Simulate multi-sensor telemetry with underlying non-linear hazard index."""
+def _generate_synthetic_mine_data(n_samples: int = 2500) -> tuple[np.ndarray, np.ndarray]:
+    """Simulate multi-sensor telemetry with underlying non-linear hazard index based on mining safety physics."""
     rng = np.random.RandomState(42)
-    methane = rng.uniform(0.1, 2.2, size=n_samples)
-    dust = rng.uniform(0.5, 7.0, size=n_samples)
-    airflow = rng.uniform(15.0, 60.0, size=n_samples)
-    seismic = rng.uniform(0.005, 0.12, size=n_samples)
-    days = rng.randint(1, 45, size=n_samples)
+    methane = rng.uniform(0.1, 2.4, size=n_samples)
+    dust = rng.uniform(0.5, 7.5, size=n_samples)
+    airflow = rng.uniform(14.0, 65.0, size=n_samples)
+    seismic = rng.uniform(0.005, 0.14, size=n_samples)
+    days = rng.randint(1, 50, size=n_samples)
 
-    # Composite physical hazard formula
-    ch4_risk = np.clip((methane - 0.8) / 1.0, 0, 1) ** 1.5
-    dust_risk = np.clip((dust - 2.5) / 4.0, 0, 1) ** 1.3
-    vent_risk = np.clip((35.0 - airflow) / 20.0, 0, 1)
-    seismic_risk = np.clip((seismic - 0.02) / 0.08, 0, 1)
-    audit_risk = np.clip((days - 25) / 15.0, 0, 1) * 0.2
+    # Calibrated physical hazard components
+    ch4_risk = np.where(
+        methane >= CH4_CRITICAL_THRESHOLD,
+        0.90 + 0.10 * np.clip((methane - 1.5) / 0.8, 0, 1),
+        np.clip((methane - 0.7) / 0.8, 0, 1) ** 1.4
+    )
+
+    dust_risk = np.where(
+        dust >= DUST_CRITICAL_THRESHOLD,
+        0.85 + 0.15 * np.clip((dust - 5.0) / 2.5, 0, 1),
+        np.clip((dust - 2.2) / 3.0, 0, 1) ** 1.3
+    )
+
+    vent_risk = np.where(
+        airflow < AIRFLOW_MINIMUM_REQUIRED,
+        0.50 + 0.50 * np.clip((AIRFLOW_MINIMUM_REQUIRED - airflow) / 16.0, 0, 1),
+        np.clip((35.0 - airflow) / 25.0, 0, 0.4)
+    )
+
+    seismic_risk = np.clip((seismic - 0.02) / 0.08, 0, 1) ** 1.2
+    audit_risk = np.clip((days - 25) / 15.0, 0, 1) * 0.25
+
+    # Non-linear coupling: high methane combined with deficient airflow multiplies hazard
+    coupling_factor = np.where((methane > 1.2) & (airflow < 28.0), 0.25, 0.0)
 
     composite = np.clip(
-        0.35 * ch4_risk + 0.25 * dust_risk + 0.25 * vent_risk + 0.10 * seismic_risk + audit_risk,
+        0.35 * ch4_risk + 0.25 * dust_risk + 0.20 * vent_risk + 0.12 * seismic_risk + audit_risk + coupling_factor,
         0.05, 0.99
     )
 
@@ -54,12 +73,13 @@ class MineGovernanceModule(BaseMLModule):
         self._train_engine()
 
     def _train_engine(self):
-        """Fit Gradient Boosted Regressor on simulated multi-variable mine physics."""
-        X, y = _generate_synthetic_mine_data(500)
+        """Fit an ensemble Gradient Boosted Regressor on the 2,500-sample mine safety dataset."""
+        X, y = _generate_synthetic_mine_data(2500)
         self.model = GradientBoostingRegressor(
-            n_estimators=100,
-            learning_rate=0.08,
-            max_depth=3,
+            n_estimators=200,
+            learning_rate=0.06,
+            max_depth=4,
+            subsample=0.85,
             random_state=42
         )
         self.model.fit(X, y)
@@ -99,86 +119,69 @@ class MineGovernanceModule(BaseMLModule):
         hazard_index = min(1.0, max(0.01, round(raw_hazard, 3)))
         safety_score = max(0, min(100, round((1.0 - hazard_index) * 100)))
 
-        # Rule evaluation & statutory violation checks
-        flagged_violations: List[str] = []
-        mitigation_directives: List[str] = []
+        violations: List[str] = []
+        mitigations: List[str] = []
+        immediate_evac = False
 
-        # 1. Methane (CH4) checks
+        # Methane compliance
         if meta["methane"] >= CH4_CRITICAL_THRESHOLD:
-            flagged_violations.append(
-                f"CRITICAL VIOLATION: Methane level {meta['methane']} PPM exceeds statutory evacuation ceiling ({CH4_CRITICAL_THRESHOLD} PPM) [DGMS Reg 169]"
-            )
-            mitigation_directives.append("Immediate electric power isolation to longwall face and evacuate underground personnel")
+            violations.append(f"CRITICAL: Methane at {meta['methane']} ppm exceeds evacuation limit (1.5 ppm)")
+            mitigations.append("Cut all electrical power in section immediately and withdraw all underground miners")
+            immediate_evac = True
         elif meta["methane"] > CH4_PERMISSIBLE_MAX:
-            flagged_violations.append(
-                f"Statutory Warning: Methane level {meta['methane']} PPM exceeds standard threshold ({CH4_PERMISSIBLE_MAX} PPM) [MSHA § 75.323]"
-            )
-            mitigation_directives.append("Ramp auxiliary ventilation fans and halt mechanical coal shearer cutting")
+            violations.append(f"WARNING: Methane at {meta['methane']} ppm exceeds standard permissible threshold (1.0 ppm)")
+            mitigations.append("Increase aux ventilation fan speed and inspect return airway seals for methane pooling")
 
-        # 2. Combustible Dust checks
+        # Respirable dust compliance
         if meta["dust"] >= DUST_CRITICAL_THRESHOLD:
-            flagged_violations.append(
-                f"CRITICAL VIOLATION: Coal dust density {meta['dust']} mg/m³ exceeds explosive combustion limit ({DUST_CRITICAL_THRESHOLD} mg/m³) [DGMS Reg 123]"
-            )
-            mitigation_directives.append("Activate high-pressure water deluge sprayers and apply limestone rock dusting immediately")
+            violations.append(f"CRITICAL: Dust density at {meta['dust']} mg/m3 exceeds combustible hazard threshold (5.0 mg/m3)")
+            mitigations.append("Activate high-pressure water scrubber sprays at continuous miner cutter head")
         elif meta["dust"] > DUST_PERMISSIBLE_MAX:
-            flagged_violations.append(
-                f"Compliance Advisory: Dust density {meta['dust']} mg/m³ exceeds permissible worker exposure ({DUST_PERMISSIBLE_MAX} mg/m³)"
-            )
-            mitigation_directives.append("Inspect dust collection cyclone filters and enforce N95 respirator compliance")
+            violations.append(f"WARNING: Dust density at {meta['dust']} mg/m3 exceeds permissible exposure (3.0 mg/m3)")
+            mitigations.append("Enforce statutory N95/FFP3 respirator usage and verify water curtain operation")
 
-        # 3. Airflow checks
+        # Ventilation airflow
         if meta["airflow"] < AIRFLOW_MINIMUM_REQUIRED:
-            flagged_violations.append(
-                f"Ventilation Deficit: Intake airflow {meta['airflow']} m³/s falls below statutory requirement ({AIRFLOW_MINIMUM_REQUIRED} m³/s) [DGMS Reg 153]"
-            )
-            mitigation_directives.append("Verify booster fan RPM and inspect ventilation stoppings for leakage or blockages")
+            violations.append(f"VIOLATION: Main airflow velocity at {meta['airflow']} m3/s is below legal minimum (30.0 m3/s)")
+            mitigations.append("Inspect ventilation regulators and booster fans in district return airway")
 
-        # 4. Seismic checks
+        # Seismic hazard
         if meta["seismic"] >= SEISMIC_BURST_THRESHOLD:
-            flagged_violations.append(
-                f"Seismic Anomaly: Microseismic vibration {meta['seismic']}g indicates potential pillar spalling or roof burst"
-            )
-            mitigation_directives.append("Deploy ultrasonic roof bolt stress testing crew to inspect Shaft 3 pillars")
+            violations.append(f"ALERT: Microseismic acceleration at {meta['seismic']}g indicates strata stress concentration")
+            mitigations.append("Halt extraction at face, install additional hydraulic prop supports, and monitor convergence")
 
-        # 5. Inspection window
+        # Audit currency
         if meta["days"] > INSPECTION_WINDOW_DAYS:
-            flagged_violations.append(
-                f"Statutory Audit Overdue: Last formal inspection conducted {meta['days']} days ago (Mandatory cycle: {INSPECTION_WINDOW_DAYS} days)"
-            )
-            mitigation_directives.append("Schedule certified safety officer comprehensive site walk within 48 hours")
+            violations.append(f"AUDIT OVERDUE: Last certified safety inspection was {meta['days']} days ago (statutory limit: 30 days)")
+            mitigations.append("Schedule expedited on-site safety audit with certified DGMS mine inspector")
 
-        # Overall Status
-        if hazard_index >= 0.70 or meta["methane"] >= CH4_CRITICAL_THRESHOLD:
-            compliance_status = "Critical Violation"
-            urgency = "Immediate Emergency Intervention"
-        elif hazard_index >= 0.40 or flagged_violations:
-            compliance_status = "Action Required"
-            urgency = "Priority 24-Hour Mitigation"
+        # Compliance Status Determination
+        if immediate_evac or hazard_index >= 0.70 or len(violations) >= 2:
+            status = "Critical Violation"
+        elif len(violations) > 0 or hazard_index >= 0.40:
+            status = "Warning"
         else:
-            compliance_status = "Compliant"
-            urgency = "Routine Continuous Monitoring"
-            mitigation_directives.append("All physical parameters within statutory permissible safety envelopes")
+            status = "Fully Compliant"
+
+        if not mitigations:
+            mitigations.append("Continue standard continuous atmospheric monitoring and daily shift logs")
 
         return {
             "mine_site_id": meta["mine_site_id"],
-            "compliance_status": compliance_status,
-            "hazard_index": hazard_index,
+            "compliance_status": status,
             "safety_score": safety_score,
-            "flagged_violations": flagged_violations,
-            "recommended_mitigation": mitigation_directives,
-            "inspector_signoff_needed": compliance_status != "Compliant",
-            "inspection_urgency": urgency,
-            "sensor_telemetry_snapshot": {
-                "methane_ppm": meta["methane"],
-                "dust_mg_m3": meta["dust"],
-                "airflow_m3_s": meta["airflow"],
-                "seismic_g": meta["seismic"],
-                "inspection_days_ago": meta["days"],
-            },
+            "hazard_index": hazard_index,
+            "flagged_violations": violations,
+            "recommended_mitigation": mitigations,
+            "inspector_signoff_needed": status != "Fully Compliant",
+            "statutory_mandate": (
+                "DGMS (Directorate General of Mines Safety) Coal Mines Regulations 2017 & MSHA Title 30 CFR. "
+                "Automated compliance logs are archived to immutable regulatory audit records."
+            ),
             "model_version": self.version,
         }
 
 
 # Singleton instance
 governance_evaluator_module = MineGovernanceModule()
+mine_governance_module = governance_evaluator_module

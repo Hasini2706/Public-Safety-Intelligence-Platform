@@ -12,16 +12,16 @@ from ml.shared.base_model import BaseMLModule, ModelStatus
 
 # Normal baseline distribution for critical data center sensor telemetry
 # Features: [after_hours (0/1), badge_failed_count, person_count, door_dwell_s, vibration_g, thermal_delta_c]
-def _generate_synthetic_baseline(n_samples: int = 500) -> np.ndarray:
+def _generate_synthetic_baseline(n_samples: int = 1500) -> np.ndarray:
     rng = np.random.RandomState(42)
     # Normal authorized day operations
-    after_hours = rng.choice([0, 1], size=n_samples, p=[0.85, 0.15])
-    failed_badges = rng.choice([0, 1], size=n_samples, p=[0.94, 0.06])
-    person_count = rng.choice([0, 1, 2], size=n_samples, p=[0.3, 0.6, 0.1])
-    door_dwell = rng.exponential(scale=8.0, size=n_samples) + 2.0  # avg 10s
-    vibration = rng.normal(loc=0.02, scale=0.01, size=n_samples)  # ambient ~0.02g
-    vibration = np.clip(vibration, 0.005, 0.08)
-    thermal_delta = rng.normal(loc=0.5, scale=0.8, size=n_samples)  # normal delta < 2C
+    after_hours = rng.choice([0, 1], size=n_samples, p=[0.88, 0.12])
+    failed_badges = rng.choice([0, 1], size=n_samples, p=[0.95, 0.05])
+    person_count = rng.choice([0, 1, 2], size=n_samples, p=[0.35, 0.58, 0.07])
+    door_dwell = rng.exponential(scale=7.5, size=n_samples) + 2.0  # avg 9.5s
+    vibration = rng.normal(loc=0.018, scale=0.008, size=n_samples)  # ambient ~0.018g
+    vibration = np.clip(vibration, 0.005, 0.06)
+    thermal_delta = rng.normal(loc=0.4, scale=0.6, size=n_samples)  # normal delta < 1.5C
 
     return np.column_stack([
         after_hours,
@@ -42,11 +42,12 @@ class PhysicalThreatDetectionModule(BaseMLModule):
         self._train_anomaly_detector()
 
     def _train_anomaly_detector(self):
-        """Fit Isolation Forest on normal baseline telemetry."""
-        baseline = _generate_synthetic_baseline(600)
+        """Fit Isolation Forest on high-fidelity baseline telemetry."""
+        baseline = _generate_synthetic_baseline(1500)
         self.model = IsolationForest(
-            n_estimators=100,
+            n_estimators=200,
             contamination=0.05,
+            max_samples=0.85,
             random_state=42
         )
         self.model.fit(baseline)
