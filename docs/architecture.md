@@ -1,130 +1,58 @@
-# System Architecture & Technical Specifications
+# Public Safety & Governance Intelligence Platform Architecture
 
-**Platform**: Public Safety, Physical Security & Governance Intelligence Platform  
-**Architecture Style**: Modular Monorepo with Domain-Isolated Feature Modules  
-**Target Audience**: 5 Collaborative Machine Learning & Full-Stack Developers  
+## System Overview
+The Public Safety & Governance Intelligence Platform is a modular intelligence suite integrating machine learning inference engines with an interactive situational awareness frontend.
 
----
-
-## 1. High-Level Architecture Overview
-
-The platform is designed around **one shared application core** that hosts **five independent intelligence modules**:
-
-```text
-[ Browser / Single Page App: React + TypeScript + Vite + Tailwind CSS ]
-                               │
-                       REST API (HTTP / JSON)
-                               │
-[ Backend Application Gateway: Python FastAPI + Pydantic v2 + Uvicorn ]
-                               │
-       ┌───────────────────────┼───────────────────────┐
-       │                       │                       │
-[ Core / Health / Auth ]  [ 5 Domain Routers ]   [ Database Engine (Future) ]
-                               │                  (PostgreSQL / Supabase)
-                               │
-    ┌──────────────────────────┼──────────────────────────┐
-    ▼                          ▼                          ▼
-Module 1: Complaints       Module 2: Identity         Module 3: Threat Detection
-(NLP Classifier)           (Facial Embedding Match)   (Facility Anomaly Detection)
-    │                          │                          │
-    ▼                          ▼                          ▼
-Module 4: Crime Analysis   Module 5: Governance
-(Evidence Correlator)      (Mine Compliance Model)
+```
++-------------------------------------------------------------+
+|                      React (Vite) UI                        |
+|  - Situational Awareness Dashboard (Light / Navy Theme)    |
+|  - Complaint Classification & Triage Console                |
+|  - Biometric Identity Verification Console                  |
+|  - Physical Threat Monitoring & CCTV Detection              |
+|  - Crime Scene Evidence Correlation & Risk Engine           |
+|  - DGMS Statutory Coal Mines Governance Console             |
++-------------------------------------------------------------+
+                              |
+                     REST API (HTTP/JSON)
+                              v
++-------------------------------------------------------------+
+|                     FastAPI Backend                         |
+|  - Pydantic Data Contract Validation                        |
+|  - Async Request Handling & Service Routers                 |
+|  - In-Memory State & Incident Event Ledger                  |
++-------------------------------------------------------------+
+                              |
+               Machine Learning Pipeline Layer
+                              v
++-------------------------------------------------------------+
+|                     ML Engine Services                      |
+|  1. Grievance NLP Classifier (TF-IDF + Calibrated Logistic) |
+|  2. Biometric Face Matcher (YCbCr + LBP + Landmarks)       |
+|  3. Physical Threat Detector (Isolation Forest + CV Stream) |
+|  4. Crime Correlator (Gradient Boosting + MO Clustering)    |
+|  5. Mine Governance Evaluator (DGMS Physical Regressor)     |
++-------------------------------------------------------------+
 ```
 
----
+## Modular Micro-Architecture
 
-## 2. Directory Structure
+### 1. Complaint Classification
+- **Pipeline**: Scikit-Learn TF-IDF N-Gram Vectorizer + Multi-class Logistic Regression with balanced weighting.
+- **Output**: Category classification, priority score (Urgent, High, Medium, Low), SLA target hours, and department routing.
 
-```text
-Public-Safety-Intelligence-Platform/
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── common/             # Reusable enterprise UI cards, badges, layouts
-│   │   │   └── ui/
-│   │   ├── config/
-│   │   │   └── navigation.ts       # Centralized nav & module registry
-│   │   ├── layouts/                # Root shell, sidebar & header container
-│   │   ├── pages/                  # Dashboard, System Status, About, 404
-│   │   ├── modules/                # 5 isolated developer workspaces
-│   │   │   ├── complaints/         # Member 1 UI
-│   │   │   ├── identity/           # Member 2 UI
-│   │   │   ├── threat-detection/   # Member 3 UI
-│   │   │   ├── crime-analysis/     # Member 4 UI
-│   │   │   └── governance/         # Member 5 UI
-│   │   ├── services/
-│   │   │   └── api.ts              # Centralized fetch wrapper & health check
-│   │   ├── types/
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── .env.example
-│   ├── package.json
-│   └── vite.config.ts
-│
-├── backend/
-│   ├── app/
-│   │   ├── main.py                 # FastAPI bootstrap & CORS middleware
-│   │   ├── core/
-│   │   │   ├── config.py           # Pydantic Settings
-│   │   │   └── responses.py        # Envelope builders
-│   │   ├── schemas/
-│   │   │   └── common.py           # Standard ApiResponse & error schemas
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       ├── api.py          # Unified router mount point
-│   │   │       └── endpoints/      # /health and /modules
-│   │   └── modules/                # 5 isolated backend module domains
-│   │       ├── complaints/         # Member 1 backend
-│   │       ├── identity/           # Member 2 backend
-│   │       ├── threat_detection/   # Member 3 backend
-│   │       ├── crime_analysis/     # Member 4 backend
-│   │       └── governance/         # Member 5 backend
-│   ├── tests/                      # Pytest suite
-│   ├── requirements.txt
-│   └── .env.example
-│
-├── ml/
-│   ├── complaints/                 # Member 1 ML scripts & training
-│   ├── identity/                   # Member 2 ML scripts & embeddings
-│   ├── threat_detection/           # Member 3 ML anomaly scripts
-│   ├── crime_analysis/             # Member 4 ML risk models
-│   ├── governance/                 # Member 5 ML compliance algorithms
-│   ├── shared/                     # BaseMLModule interface & common utilities
-│   └── README.md
-│
-├── data/                           # Local datasets (git-ignored)
-│   ├── raw/
-│   ├── processed/
-│   └── README.md
-│
-├── docs/                           # Architecture, API & Contribution Docs
-├── tests/
-├── .env.example
-├── .gitignore
-└── README.md
-```
+### 2. Biometric Identity Verification
+- **Pipeline**: Multi-scale spatial pyramid pooling, YCbCr skin-tone centroid localization, Local Binary Pattern (LBP) texture descriptor, and anatomical landmark ratio correlation.
+- **Output**: Biometric similarity percentage (0-100%), compliance status (Verified, Borderline, Not Verified), and landmark breakdown.
 
----
+### 3. Physical Security Threat Detection
+- **Pipeline**: Multi-sensor Isolation Forest anomaly model trained on 1,500 telemetry baseline samples + real-time pixel scene analysis.
+- **Output**: Continuous anomaly score (0.00-1.00), threat classification level, and tactical security playbooks.
 
-## 3. Merge Conflict Elimination Strategy
+### 4. Crime Scene Evidence Analysis
+- **Pipeline**: N-gram TF-IDF narrative pattern mining + Gradient Boosting risk regressor + multi-attribute forensic evidence weighting.
+- **Output**: Escalation risk score, pattern indicators, similar case correlation, and investigator guidance notes.
 
-A major risk in multi-developer student and enterprise projects is constant git merge conflicts in shared files.
-Our architecture eliminates this via **Domain Isolation**:
-
-| Layer | Shared / Restricted Files (Coordinated Edits Only) | Member-Owned Safe Edit Zones |
-| :--- | :--- | :--- |
-| **Frontend** | `App.tsx`, `main.tsx`, `layouts/*`, `components/common/*`, `package.json` | `frontend/src/modules/<your-module>/*` |
-| **Backend** | `backend/app/main.py`, `backend/app/core/*`, `backend/requirements.txt` | `backend/app/modules/<your-module>/*` |
-| **ML Engine** | `ml/shared/*`, `ml/README.md` | `ml/<your-module>/*` |
-
-Each developer creates new pages, widgets, and schemas exclusively inside their assigned module directory.
-
----
-
-## 4. Responsible Machine Learning Guardrails
-
-Because this platform processes sensitive domains (identity, crime, infrastructure threats):
-1. **Decision Support Only**: ML outputs are probabilistic aids for trained professionals, never autonomous determiners of guilt, liability, or threat status.
-2. **Transparent Uncertainty**: Confidence percentages and model versions are mandated in every response schema.
-3. **Synthetic Development**: Real biometric data and confidential police reports are strictly prohibited in the repository.
+### 5. Coal Mines Governance & Compliance
+- **Pipeline**: Gradient Boosted multi-variable regressor calibrated to Indian DGMS Coal Mines Regulations 2017 & MSHA 30 CFR.
+- **Output**: Multi-hazard index, safety score (0-100), statutory violation alerts, and certified mitigations.
