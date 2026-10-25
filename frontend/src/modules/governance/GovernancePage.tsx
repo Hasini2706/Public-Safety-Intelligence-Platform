@@ -62,246 +62,298 @@ interface AuditActivity {
 
 const INITIAL_CASES: ComplaintCase[] = [
   {
-    id: 'PS-2026-001',
+    id: 'MINE-2026-001',
     date: '24 Oct 2026',
     dateTime: '24 Oct 2026, 10:24 AM',
-    summary: 'Theft of mobile phone at bus stand',
-    fullDetails: 'Mobile phone stolen at bus stand. Suspect seen running towards main road.',
-    classification: 'Theft',
-    confidence: 92,
+    summary: 'Methane (CH4) Exceeded 1.25% in Seam-III Face',
+    fullDetails:
+      'Continuous tele-monitoring methane sensor MS-04 at Seam-III working face recorded CH4 spiking to 1.38% (DGMS statutory threshold: 1.25%). Automatic district electrical power interlock tripped instantaneously.',
+    classification: 'Inflammable Gas / Methane',
+    confidence: 98,
     riskLevel: 'High',
-    threatScore: 0.87,
+    threatScore: 0.94,
     status: 'Action Required',
     whyActionRequired: [
-      'Credible indication of a safety risk',
-      'Serious allegation requiring investigation',
-      'Missing property and suspect information',
-      'Requires follow-up and police investigation',
+      'DGMS Regulation 153: Inflammable gas exceeded 1.25% permissible statutory operating limit',
+      'Automatic electrical power cut-off triggered on district 3.3kV feeder switchgear',
+      'Ventilation overman must flush return airway and verify gas dispersal before restoration',
+      'Statutory gas report Form IV must be submitted and countersigned by Mine Manager',
     ],
     evidenceList: [
       {
         id: 'ev-1',
-        title: 'Bus Stand Incident Scene',
+        title: 'CH4 Telemetry Sensor MS-04 Log',
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80',
+        url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
         date: '24 Oct 2026, 10:28 AM',
         fileSize: '2.4 MB',
-        description: 'Photo taken at central bus terminal platform 3 immediately post-incident.',
-        officer: 'Officer: R. Kumar',
+        description: 'SCADA telemetry record showing 1.38% CH4 spike and automatic circuit trip.',
+        officer: 'Overman: R. Sharma',
       },
       {
         id: 'ev-2',
-        title: 'CCTV Camera #04 Clip',
+        title: 'Underground Face CCTV Cam #08',
         type: 'video',
         url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        date: '24 Oct 2026, 10:45 AM',
+        date: '24 Oct 2026, 10:35 AM',
         fileSize: '14.8 MB',
-        description: 'Security surveillance footage tracking suspect in dark hoodie escaping toward main road.',
-        officer: 'Officer: R. Kumar',
+        description: 'Infrared night-vision footage of Seam-III extraction heading during power trip.',
+        officer: 'Overman: R. Sharma',
       },
       {
         id: 'ev-3',
-        title: 'IMEI Telecom Carrier Registry',
+        title: 'DGMS Form IV Statutory Gas Log',
         type: 'document',
         date: '24 Oct 2026, 11:05 AM',
         fileSize: '420 KB',
-        description: 'Official telecom tower ping log confirming handset was active on Sector 4 tower.',
-        officer: 'Officer: R. Kumar',
+        description: 'Overman handheld multi-gas detector physical cross-verification sheet.',
+        officer: 'Overman: R. Sharma',
       },
       {
         id: 'ev-4',
-        title: 'Witness Statement - Vendor #12',
+        title: 'Ventilation Airflow Verification',
         type: 'document',
         date: '24 Oct 2026, 11:15 AM',
         fileSize: '185 KB',
-        description: 'Recorded transcript from tea stall vendor describing suspect physical attributes.',
-        officer: 'Officer: R. Kumar',
+        description: 'Anemometer reading confirming 1,200 m³/min auxiliary fan output.',
+        officer: 'Ventilation Officer: M. Roy',
       },
     ],
   },
   {
-    id: 'PS-2026-002',
+    id: 'MINE-2026-002',
     date: '24 Oct 2026',
     dateTime: '24 Oct 2026, 09:15 AM',
-    summary: 'Suspicious person near school',
-    fullDetails: 'Unidentified adult observed loitering near school boundary wall during morning entry hours.',
-    classification: 'Suspicious Activity',
-    confidence: 88,
-    riskLevel: 'Medium',
-    threatScore: 0.64,
-    status: 'Pending Review',
+    summary: 'Roof Strata Dilation & Support Dislodgement at Gallery 14',
+    fullDetails:
+      'Multi-point borehole tell-tale extensometer recorded 18.4mm roof dilation exceeding 10mm alert threshold. Two adjacent mechanical roof bolts yielded under strata pressure at 5th Dip junction.',
+    classification: 'Strata & Roof Control',
+    confidence: 95,
+    riskLevel: 'High',
+    threatScore: 0.91,
+    status: 'Action Required',
     whyActionRequired: [
-      'Proximity to vulnerable public school zone',
-      'Requires patrol unit verification and interview',
-      'Awaiting officer field assessment',
+      'Strata Control and Monitoring Plan (SCAMP) red trigger level breached',
+      'Imminent risk of localized roof fall in active coal transport gallery',
+      'Immediate barricading and supplementary resin bolting / props installation mandated',
     ],
     evidenceList: [
       {
         id: 'ev-201',
-        title: 'School Perimeter Camera Still',
+        title: 'Extensometer Dial & Roof Cleavage Photo',
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
+        url: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=800&q=80',
         date: '24 Oct 2026, 09:18 AM',
         fileSize: '1.8 MB',
-        description: 'Security feed snapshot of North Gate boundary wall.',
-        officer: 'Officer: A. Khan',
+        description: 'Visible tension crack in immediate shale roof at 5th Dip junction.',
+        officer: 'Strata Officer: P. Jena',
       },
       {
         id: 'ev-202',
-        title: 'Principal Incident Report',
+        title: 'SCAMP Borehole Displacement Report',
         type: 'document',
         date: '24 Oct 2026, 09:30 AM',
         fileSize: '310 KB',
-        description: 'Formal written alert submitted by school administration.',
-        officer: 'Officer: A. Khan',
+        description: 'Automated data logger export from 6m anchored magnetic ring extensometer.',
+        officer: 'Strata Officer: P. Jena',
       },
     ],
   },
   {
-    id: 'PS-2026-003',
-    date: '23 Oct 2026',
-    dateTime: '23 Oct 2026, 08:40 PM',
-    summary: 'Street light not working',
-    fullDetails: 'Street lighting pole #42 dark on municipal roadway corridor; scheduled for city power repair.',
-    classification: 'Civic Issue',
-    confidence: 96,
-    riskLevel: 'Low',
-    threatScore: 0.18,
-    status: 'No Action Required',
+    id: 'MINE-2026-003',
+    date: '24 Oct 2026',
+    dateTime: '24 Oct 2026, 08:30 AM',
+    summary: 'Haul Road Dumper Proximity Alert near Sump Cut',
+    fullDetails:
+      'Heavy Earth Moving Machinery (HEMM) Proximity Warning System alerted 100T CAT 777D dumper encroaching within 9 meters of light utility vehicle on wet grade of North Pit haul road.',
+    classification: 'HEMM & Haul Road',
+    confidence: 92,
+    riskLevel: 'Medium',
+    threatScore: 0.65,
+    status: 'Pending Review',
     whyActionRequired: [
-      'Non-criminal civil infrastructure concern',
-      'Automated referral routed to Municipal Electrical Dept',
+      'DGMS circular on HEMM safety: Minimum 30m trailing distance violated',
+      'Haul road GPS telematics and operator fatigue camera footage under review',
+      'Inspection of haul road edge safety berm height required before next shift',
     ],
     evidenceList: [
       {
         id: 'ev-301',
-        title: 'Street Lighting Pole Inspection Photo',
+        title: 'Haul Road Junction AI Camera Snapshot',
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=800&q=80',
-        date: '23 Oct 2026, 08:45 PM',
-        fileSize: '1.2 MB',
-        description: 'Dark corridor on 4th cross avenue near pole #42.',
-        officer: 'Officer: S. Devi',
+        url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80',
+        date: '24 Oct 2026, 08:35 AM',
+        fileSize: '1.9 MB',
+        description: 'Radar detection overlay indicating critical proximity violation between dumper and utility jeep.',
+        officer: 'Safety Officer: K. Singh',
+      },
+      {
+        id: 'ev-302',
+        title: 'HEMM Telematics Speed & Braking Log',
+        type: 'document',
+        date: '24 Oct 2026, 08:50 AM',
+        fileSize: '240 KB',
+        description: 'Brake pressure and deceleration logs extracted from vehicle CAN bus.',
+        officer: 'Safety Officer: K. Singh',
       },
     ],
   },
   {
-    id: 'PS-2026-004',
+    id: 'MINE-2026-004',
     date: '23 Oct 2026',
     dateTime: '23 Oct 2026, 02:10 PM',
-    summary: 'Harassment complaint in college',
-    fullDetails: 'Female student reported verbal intimidation and stalker harassment near campus library.',
-    classification: 'Harassment',
-    confidence: 94,
+    summary: 'Ventilation Fan #2 Air Velocity Drop Below 0.5 m/s',
+    fullDetails:
+      'Stationary vane anemometer at Section B Return Airway measured air velocity dropping from 1.15 m/s to 0.42 m/s following an air-leakage flap malfunction at the shaft air-lock.',
+    classification: 'Mine Ventilation',
+    confidence: 96,
     riskLevel: 'High',
-    threatScore: 0.82,
+    threatScore: 0.88,
     status: 'Action Required',
     whyActionRequired: [
-      'Immediate student safety and protection protocol',
-      'Formal campus police report initiated',
-      'Security video review pending',
+      'Coal Mines Regulation 156: Minimum air velocity in return airway breached',
+      'Risk of methane and carbon monoxide pooling in working stopes and blind headings',
+      'Mechanical engineering crew dispatched to overhaul air-lock door rubber seals',
     ],
     evidenceList: [
       {
         id: 'ev-401',
-        title: 'Campus Library Entrance CCTV',
+        title: 'Shaft Air-Lock Video Feed',
         type: 'video',
         url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
         date: '23 Oct 2026, 02:20 PM',
         fileSize: '9.4 MB',
-        description: 'Corridor footage capturing verbal confrontation outside library.',
-        officer: 'Officer: R. Kumar',
+        description: 'CCTV footage showing damaged rubber flap seal on primary shaft air-lock chamber.',
+        officer: 'Ventilation Officer: M. Roy',
       },
       {
         id: 'ev-402',
-        title: 'SMS Threat Screenshots',
+        title: 'Air Velocity Trend Sensor Chart',
         type: 'image',
-        url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
+        url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
         date: '23 Oct 2026, 02:25 PM',
         fileSize: '1.5 MB',
-        description: 'Verified messaging logs submitted by student.',
-        officer: 'Officer: R. Kumar',
+        description: 'SCADA telemetry showing velocity drop below 0.5 m/s statutory threshold.',
+        officer: 'Ventilation Officer: M. Roy',
       },
     ],
   },
   {
-    id: 'PS-2026-005',
-    date: '22 Oct 2026',
-    dateTime: '22 Oct 2026, 11:30 PM',
-    summary: 'Noise pollution from event',
-    fullDetails: 'Commercial venue played loud music beyond permitted 10 PM curfew; sound permit checked.',
-    classification: 'Public Nuisance',
+    id: 'MINE-2026-005',
+    date: '23 Oct 2026',
+    dateTime: '23 Oct 2026, 08:40 PM',
+    summary: 'Water Sump Inflow Exceeding Drainage Rate at Incline-2',
+    fullDetails:
+      'Underground main sump water level reached 82% capacity after sudden seepage increase from faulted geological fracture. Dewatering pump #3 thermal overload trip.',
+    classification: 'Inundation & Dewatering',
     confidence: 91,
+    riskLevel: 'Medium',
+    threatScore: 0.58,
+    status: 'Pending Review',
+    whyActionRequired: [
+      'Inundation danger protocol: Reserve pumping capacity below 4-hour safety buffer',
+      'Standby 150 HP turbine pump engaged manually by pump operator',
+      'Hydrogeological survey required to assess fault fissure seepage rate',
+    ],
+    evidenceList: [
+      {
+        id: 'ev-501',
+        title: 'Sump Water Level Telemetry Graph',
+        type: 'image',
+        url: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=800&q=80',
+        date: '23 Oct 2026, 08:45 PM',
+        fileSize: '1.2 MB',
+        description: 'Acoustic level sensor reading showing accelerated water ingress curve in Incline-2.',
+        officer: 'Mechanical Engineer: T. Rao',
+      },
+    ],
+  },
+  {
+    id: 'MINE-2026-006',
+    date: '22 Oct 2026',
+    dateTime: '22 Oct 2026, 04:15 PM',
+    summary: 'Miners PPE Non-Compliance: Missing Self-Rescuer (SCSR)',
+    fullDetails:
+      'Shift check-in biometric turnstile flagged 2 contractual timber-setters attempting descent without mandated SCSR chemical oxygen self-rescuers at pit-head lamp room.',
+    classification: 'Miners PPE & Safety',
+    confidence: 99,
     riskLevel: 'Low',
     threatScore: 0.22,
     status: 'No Action Required',
     whyActionRequired: [
-      'First-time sound decibel excess warning issued',
-      'Sound equipment volume adjusted by event organizer',
+      'Automated biometric turnstile barrier prevented descent into shaft cage',
+      'Compliant Draeger Oxyboks SCSR units issued and logged in lamp room register',
+      'Refresher emergency oxygen donning verification completed before entry',
     ],
-    evidenceList: [],
+    evidenceList: [
+      {
+        id: 'ev-601',
+        title: 'Lamp Room Turnstile RFID Event Log',
+        type: 'document',
+        date: '22 Oct 2026, 04:20 PM',
+        fileSize: '160 KB',
+        description: 'Digital audit log of restricted gate entry and equipment re-allocation.',
+        officer: 'Lamp Room Incharge: S. Mondal',
+      },
+    ],
   },
   {
-    id: 'PS-2026-006',
+    id: 'MINE-2026-007',
     date: '22 Oct 2026',
-    dateTime: '22 Oct 2026, 04:15 PM',
-    summary: 'Duplicate complaint (same as PS-2026-011)',
-    fullDetails: 'Report matched existing open case PS-2026-011 regarding minor traffic accident.',
-    classification: 'Duplicate',
+    dateTime: '22 Oct 2026, 11:30 AM',
+    summary: 'Respirable Coal Dust Water Misting Inactive on Conveyor 4',
+    fullDetails:
+      'Optical scatter dust monitor recorded 4.8 mg/m³ airborne respirable coal dust at transfer chute #4 due to clogged misting nozzle manifold.',
+    classification: 'Coal Dust & Explosives',
+    confidence: 94,
+    riskLevel: 'High',
+    threatScore: 0.86,
+    status: 'Action Required',
+    whyActionRequired: [
+      'DGMS Statutory limit for respirable dust (3.0 mg/m³) exceeded',
+      'Heightened risk of coal dust cloud propagation and worker pneumoconiosis',
+      'Transfer point water line descaled; stone dust barrier inspected',
+    ],
+    evidenceList: [
+      {
+        id: 'ev-701',
+        title: 'Dust Monitor Telemetry & Chute Photo',
+        type: 'image',
+        url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=800&q=80',
+        date: '22 Oct 2026, 11:45 AM',
+        fileSize: '2.1 MB',
+        description: 'Chute optical sensor chart recording respirable dust concentration above ceiling.',
+        officer: 'Dust Control Incharge: H. Murmu',
+      },
+    ],
+  },
+  {
+    id: 'MINE-2026-008',
+    date: '21 Oct 2026',
+    dateTime: '21 Oct 2026, 01:25 PM',
+    summary: 'Pre-Shift Statutory Environmental & Gas Clearance Logged',
+    fullDetails:
+      'Full statutory pre-shift gas testing conducted across all underground working districts. CH4: 0.06%, CO: 0 ppm, O2: 20.9%, Air quantity: 2,400 m³/min.',
+    classification: 'Mine Ventilation',
     confidence: 99,
     riskLevel: 'Low',
     threatScore: 0.05,
     status: 'No Action Required',
     whyActionRequired: [
-      'Merged into primary investigation case PS-2026-011',
-      'No duplicate police allocation needed',
-    ],
-    evidenceList: [],
-  },
-  {
-    id: 'PS-2026-007',
-    date: '21 Oct 2026',
-    dateTime: '21 Oct 2026, 06:50 PM',
-    summary: 'Threat message received online',
-    fullDetails: 'Aggressive extortion and physical harm threat received via encrypted messaging service.',
-    classification: 'Cyber Threat',
-    confidence: 95,
-    riskLevel: 'High',
-    threatScore: 0.89,
-    status: 'Action Required',
-    whyActionRequired: [
-      'Direct safety threat requiring digital forensics trace',
-      'Cybercrime division dispatch notification active',
+      'All atmospheric and ventilation indicators well within DGMS standard thresholds',
+      'Form IV statutory register signed by Safety Overman and Mining Sirdar',
     ],
     evidenceList: [
       {
-        id: 'ev-701',
-        title: 'Encrypted Message Export',
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
-        date: '21 Oct 2026, 07:05 PM',
-        fileSize: '3.1 MB',
-        description: 'Raw digital forensics extraction of chat logs and handle identifiers.',
-        officer: 'Officer: Cyber Division',
+        id: 'ev-801',
+        title: 'DGMS Pre-Shift Environmental Certificate',
+        type: 'document',
+        date: '21 Oct 2026, 01:30 PM',
+        fileSize: '340 KB',
+        description: 'Countersigned statutory certificate authorizing Shift-B descent.',
+        officer: 'Safety Overman: D. Banerjee',
       },
     ],
-  },
-  {
-    id: 'PS-2026-008',
-    date: '21 Oct 2026',
-    dateTime: '21 Oct 2026, 01:25 PM',
-    summary: 'Unclear information, needs verification',
-    fullDetails: 'Incomplete witness statement submitted without contact details or precise scene location.',
-    classification: 'Other',
-    confidence: 67,
-    riskLevel: 'Medium',
-    threatScore: 0.52,
-    status: 'Pending Review',
-    whyActionRequired: [
-      'Insufficient preliminary metadata for categorization',
-      'Manual officer interview needed to corroborate statement',
-    ],
-    evidenceList: [],
   },
 ];
 
@@ -309,39 +361,39 @@ const INITIAL_AUDIT_ACTIVITIES: AuditActivity[] = [
   {
     id: 'aud-1',
     timestamp: '24 Oct 2026, 11:20 AM',
-    action: 'Status changed to Action Required',
-    officer: 'Officer: R. Kumar',
+    action: 'DGMS Form IV gas exceedance alert escalated to Manager',
+    officer: 'Mine Safety Officer: R. Sharma (First Class Mgr)',
   },
   {
     id: 'aud-2',
     timestamp: '24 Oct 2026, 10:45 AM',
-    action: 'Evidence added (CCTV image)',
-    officer: 'Officer: R. Kumar',
+    action: 'Strata extensometer calibration log uploaded',
+    officer: 'Strata Control Officer: P. Jena',
   },
   {
     id: 'aud-3',
     timestamp: '23 Oct 2026, 04:12 PM',
-    action: 'Marked as No Action Required',
-    officer: 'Officer: S. Devi',
+    action: 'Lamp room SCSR turnout clearance signed off',
+    officer: 'Safety Overman: D. Banerjee',
   },
   {
     id: 'aud-4',
     timestamp: '23 Oct 2026, 11:30 AM',
-    action: 'Case assigned for review',
-    officer: 'Officer: A. Khan',
+    action: 'Ventilation fan #2 emergency inspection assigned',
+    officer: 'Ventilation Officer: M. Roy',
   },
 ];
 
 export const GovernancePage: React.FC = () => {
   const [cases, setCases] = useState<ComplaintCase[]>(INITIAL_CASES);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('PS-2026-001');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('MINE-2026-001');
   const [auditActivities, setAuditActivities] = useState<AuditActivity[]>(INITIAL_AUDIT_ACTIVITIES);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('All Status');
   const [categoryFilter, setCategoryFilter] = useState<string>('All Categories');
   const [riskFilter, setRiskFilter] = useState<string>('All Risk Levels');
-  const [locationFilter, setLocationFilter] = useState<string>('All Locations');
+  const [locationFilter, setLocationFilter] = useState<string>('All Mining Sections');
   const [selectedDateRange, setSelectedDateRange] = useState<string>('All Dates');
   const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
@@ -367,9 +419,9 @@ export const GovernancePage: React.FC = () => {
   const [isAllEvidenceOpen, setIsAllEvidenceOpen] = useState(false);
   const [viewingEvidence, setViewingEvidence] = useState<EvidenceItem | null>(null);
 
-  // Form states for New Complaint
+  // Form states for New Incident
   const [newSummary, setNewSummary] = useState('');
-  const [newClassification, setNewClassification] = useState('Theft');
+  const [newClassification, setNewClassification] = useState('Inflammable Gas / Methane');
   const [newRisk, setNewRisk] = useState<'High' | 'Medium' | 'Low'>('High');
   const [officerNoteText, setOfficerNoteText] = useState('');
 
@@ -386,21 +438,43 @@ export const GovernancePage: React.FC = () => {
 
   const selectedCase = cases.find((c) => c.id === selectedCaseId) || cases[0];
 
-  // Filter complaints
+  // Filter complaints / incidents
   const filteredCases = cases.filter((c) => {
     if (statusFilter !== 'All Status' && c.status !== statusFilter) return false;
     if (categoryFilter !== 'All Categories' && c.classification !== categoryFilter) return false;
     if (riskFilter !== 'All Risk Levels' && c.riskLevel !== riskFilter) return false;
 
-    // Location Filter
-    if (locationFilter === 'Downtown') {
-      const match = c.summary.toLowerCase().includes('bus') || c.fullDetails.toLowerCase().includes('bus') || c.summary.toLowerCase().includes('theft');
+    // Location Filter for Coal Mines
+    if (locationFilter === 'Underground Seam-III (Section A)') {
+      const match =
+        c.summary.toLowerCase().includes('seam') ||
+        c.fullDetails.toLowerCase().includes('seam') ||
+        c.summary.toLowerCase().includes('methane');
       if (!match) return false;
-    } else if (locationFilter === 'Industrial') {
-      const match = c.summary.toLowerCase().includes('industrial') || c.summary.toLowerCase().includes('noise') || c.fullDetails.toLowerCase().includes('corridor');
+    } else if (locationFilter === 'Underground Gallery 14') {
+      const match =
+        c.summary.toLowerCase().includes('gallery') ||
+        c.fullDetails.toLowerCase().includes('gallery') ||
+        c.summary.toLowerCase().includes('strata') ||
+        c.summary.toLowerCase().includes('roof');
       if (!match) return false;
-    } else if (locationFilter === 'Campus') {
-      const match = c.summary.toLowerCase().includes('school') || c.summary.toLowerCase().includes('college') || c.summary.toLowerCase().includes('campus');
+    } else if (locationFilter === 'Surface Open Cast & Haul Road') {
+      const match =
+        c.summary.toLowerCase().includes('haul') ||
+        c.fullDetails.toLowerCase().includes('haul') ||
+        c.summary.toLowerCase().includes('dumper');
+      if (!match) return false;
+    } else if (locationFilter === 'Main Incline & Sump Pump #2') {
+      const match =
+        c.summary.toLowerCase().includes('sump') ||
+        c.fullDetails.toLowerCase().includes('sump') ||
+        c.fullDetails.toLowerCase().includes('inflow');
+      if (!match) return false;
+    } else if (locationFilter === 'Ventilation Shaft #1') {
+      const match =
+        c.summary.toLowerCase().includes('ventilation') ||
+        c.fullDetails.toLowerCase().includes('ventilation') ||
+        c.summary.toLowerCase().includes('air');
       if (!match) return false;
     }
 
@@ -445,8 +519,8 @@ export const GovernancePage: React.FC = () => {
       {
         id: `aud-${Date.now()}`,
         timestamp: timeString,
-        action: `Status changed to ${newStatus}`,
-        officer: 'Officer: Admin (You)',
+        action: `Statutory status changed to ${newStatus}`,
+        officer: 'Safety Manager (You)',
       },
       ...prev,
     ]);
@@ -530,7 +604,7 @@ export const GovernancePage: React.FC = () => {
       date: timeString,
       fileSize: evidenceFileSize || (evidenceType === 'video' ? '8.5 MB' : '1.8 MB'),
       description: evidenceDescription.trim() || undefined,
-      officer: 'Officer: Admin (You)',
+      officer: 'Safety Officer (You)',
     };
 
     setCases((prev) =>
@@ -547,7 +621,7 @@ export const GovernancePage: React.FC = () => {
         id: `aud-${Date.now()}`,
         timestamp: timeString,
         action: `Evidence added (${newEvidence.title})`,
-        officer: 'Officer: Admin (You)',
+        officer: 'Safety Officer (You)',
       },
       ...prev,
     ]);
@@ -584,7 +658,7 @@ export const GovernancePage: React.FC = () => {
   const handleCreateComplaint = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSummary.trim()) return;
-    const newId = `PS-2026-${String(cases.length + 1).padStart(3, '0')}`;
+    const newId = `MINE-2026-${String(cases.length + 1).padStart(3, '0')}`;
     const newCaseItem: ComplaintCase = {
       id: newId,
       date: '25 Oct 2026',
@@ -592,25 +666,25 @@ export const GovernancePage: React.FC = () => {
       summary: newSummary.trim(),
       fullDetails: newSummary.trim(),
       classification: newClassification,
-      confidence: 90,
+      confidence: 94,
       riskLevel: newRisk,
-      threatScore: newRisk === 'High' ? 0.85 : newRisk === 'Medium' ? 0.55 : 0.2,
+      threatScore: newRisk === 'High' ? 0.88 : newRisk === 'Medium' ? 0.58 : 0.22,
       status: 'Action Required',
       whyActionRequired: [
-        'Newly filed citizen complaint awaiting full detective triage',
-        'Credible initial safety indicators flagged by intake pipeline',
+        'Newly logged mine safety incident flagged for statutory DGMS verification',
+        'Overman and Shift Incharge preliminary inspection pending',
       ],
       evidenceList: evidenceDataUrl
         ? [
             {
               id: `ev-${Date.now()}`,
-              title: evidenceTitle.trim() || 'Attached Initial Evidence',
+              title: evidenceTitle.trim() || 'Attached Sensor / Inspection Evidence',
               type: evidenceType,
               dataUrl: evidenceDataUrl,
               date: '25 Oct 2026, 10:00 AM',
               fileSize: evidenceFileSize || '2.0 MB',
-              description: 'Uploaded with citizen intake form.',
-              officer: 'Intake Desk',
+              description: 'Uploaded during incident logging.',
+              officer: 'Shift Safety Incharge',
             },
           ]
         : [],
@@ -641,40 +715,40 @@ export const GovernancePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setEvidenceSuccessToast(null)}
-              className="ml-2 hover:opacity-80"
+              className="ml-2 hover:opacity-80 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
 
-        {/* Top Header Banner matching Photo */}
+        {/* Top Header Banner for Coal Mines */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-blue-600">
-                Governance & Compliance
+                Governance & Compliance for Coal Mines
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Ensure fair, transparent and accountable use of AI in public safety.
+              Statutory safety monitoring, DGMS regulatory compliance, strata stability, gas threshold monitoring, and mine hazard governance.
             </p>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Golden Scales of Justice graphic */}
+            {/* Scales / Safety icon */}
             <div className="hidden lg:flex items-center justify-center text-amber-500">
               <Scale className="w-10 h-10 stroke-[1.8]" />
             </div>
 
-            {/* Responsible AI Shield Badge */}
+            {/* DGMS Statutory Badge */}
             <div className="flex items-center gap-3 bg-amber-50/70 border border-amber-300/80 rounded-xl px-4 py-2.5 shadow-2xs">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="leading-tight">
-                <p className="text-xs font-bold text-amber-950">Responsible AI.</p>
-                <p className="text-[11px] text-amber-800 font-medium">Safer Communities.</p>
+                <p className="text-xs font-bold text-amber-950">DGMS Statutory Compliance</p>
+                <p className="text-[11px] text-amber-800 font-medium">Coal Mines Regulations 2017</p>
               </div>
             </div>
           </div>
@@ -682,7 +756,7 @@ export const GovernancePage: React.FC = () => {
 
         {/* 4 Metric / KPI Cards Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {/* Card 1: Total Complaints */}
+          {/* Card 1: Total Statutory Incidents */}
           <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -690,7 +764,7 @@ export const GovernancePage: React.FC = () => {
               </div>
               <div>
                 <span className="text-2xl font-bold text-slate-900 leading-none">128</span>
-                <p className="text-xs font-semibold text-slate-500 mt-1">Total Complaints</p>
+                <p className="text-xs font-semibold text-slate-500 mt-1">Total Statutory Incidents</p>
               </div>
             </div>
             <div className="text-right">
@@ -707,16 +781,16 @@ export const GovernancePage: React.FC = () => {
               </div>
               <div>
                 <span className="text-2xl font-bold text-slate-900 leading-none">42</span>
-                <p className="text-xs font-semibold text-slate-500 mt-1">Action Required</p>
+                <p className="text-xs font-semibold text-slate-500 mt-1">Critical Action Required</p>
               </div>
             </div>
             <div className="text-right">
               <span className="text-xs font-bold text-red-600">↑ +8%</span>
-              <p className="text-[10px] text-slate-400 mt-0.5">Needs attention</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">DGMS alerts</p>
             </div>
           </div>
 
-          {/* Card 3: No Action Required */}
+          {/* Card 3: Compliant / Resolved */}
           <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -724,12 +798,12 @@ export const GovernancePage: React.FC = () => {
               </div>
               <div>
                 <span className="text-2xl font-bold text-slate-900 leading-none">56</span>
-                <p className="text-xs font-semibold text-slate-500 mt-1">No Action Required</p>
+                <p className="text-xs font-semibold text-slate-500 mt-1">Compliant / Cleared</p>
               </div>
             </div>
             <div className="text-right">
               <span className="text-xs font-bold text-emerald-600">↑ +15%</span>
-              <p className="text-[10px] text-slate-400 mt-0.5">Closed/Resolved</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Safety cleared</p>
             </div>
           </div>
 
@@ -741,30 +815,30 @@ export const GovernancePage: React.FC = () => {
               </div>
               <div>
                 <span className="text-2xl font-bold text-slate-900 leading-none">30</span>
-                <p className="text-xs font-semibold text-slate-500 mt-1">Pending Review</p>
+                <p className="text-xs font-semibold text-slate-500 mt-1">Pending Inspection</p>
               </div>
             </div>
             <div className="text-right">
               <span className="text-xs font-bold text-amber-600">↓ -5%</span>
-              <p className="text-[10px] text-slate-400 mt-0.5">Awaiting review</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Overman triage</p>
             </div>
           </div>
         </div>
 
-        {/* Main Content: Left Complaints Table & Right Case Details Panel */}
+        {/* Main Content: Left Incident Table & Right Details Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Table Section (8 cols) */}
           <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            {/* Header: Title + New Complaint Button */}
+            {/* Header: Title + Log Safety Incident Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Complaint Oversight</h2>
+                  <h2 className="text-base font-bold text-slate-900">Mine Safety Oversight</h2>
                   <p className="text-xs text-slate-500">
-                    Review AI classifications, evidence and officer decisions.
+                    Review sensor hazard classifications, gas telemetry, strata monitoring, and safety officer decisions.
                   </p>
                 </div>
               </div>
@@ -775,7 +849,7 @@ export const GovernancePage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-lg shadow-2xs transition-colors self-start sm:self-auto cursor-pointer"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>New Complaint</span>
+                <span>Log Safety Incident</span>
               </button>
             </div>
 
@@ -797,15 +871,14 @@ export const GovernancePage: React.FC = () => {
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
               >
-                <option value="All Categories">All Categories</option>
-                <option value="Theft">Theft</option>
-                <option value="Suspicious Activity">Suspicious Activity</option>
-                <option value="Civic Issue">Civic Issue</option>
-                <option value="Harassment">Harassment</option>
-                <option value="Public Nuisance">Public Nuisance</option>
-                <option value="Duplicate">Duplicate</option>
-                <option value="Cyber Threat">Cyber Threat</option>
-                <option value="Other">Other</option>
+                <option value="All Categories">All Hazard Categories</option>
+                <option value="Inflammable Gas / Methane">Inflammable Gas / Methane</option>
+                <option value="Strata & Roof Control">Strata & Roof Control</option>
+                <option value="Mine Ventilation">Mine Ventilation</option>
+                <option value="HEMM & Haul Road">HEMM & Haul Road</option>
+                <option value="Inundation & Dewatering">Inundation & Dewatering</option>
+                <option value="Coal Dust & Explosives">Coal Dust & Explosives</option>
+                <option value="Miners PPE & Safety">Miners PPE & Safety</option>
               </select>
 
               <select
@@ -824,10 +897,12 @@ export const GovernancePage: React.FC = () => {
                 onChange={(e) => setLocationFilter(e.target.value)}
                 className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
               >
-                <option value="All Locations">All Locations</option>
-                <option value="Downtown">Downtown Sector 1</option>
-                <option value="Industrial">Sector 4 Industrial</option>
-                <option value="Campus">North Campus</option>
+                <option value="All Mining Sections">All Mining Sections</option>
+                <option value="Underground Seam-III (Section A)">Underground Seam-III (Section A)</option>
+                <option value="Underground Gallery 14">Underground Gallery 14</option>
+                <option value="Surface Open Cast & Haul Road">Surface Open Cast & Haul Road</option>
+                <option value="Main Incline & Sump Pump #2">Main Incline & Sump Pump #2</option>
+                <option value="Ventilation Shaft #1">Ventilation Shaft #1</option>
               </select>
 
               {/* Interactive Date Range Selector Dropdown */}
@@ -871,7 +946,7 @@ export const GovernancePage: React.FC = () => {
                               setIsDateRangeOpen(false);
                             }
                           }}
-                          className={`w-full text-left px-3.5 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                          className={`w-full text-left px-3.5 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
                             selectedDateRange === opt.value
                               ? 'font-semibold text-blue-600 bg-blue-50/60'
                               : 'text-slate-700'
@@ -906,7 +981,7 @@ export const GovernancePage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setIsDateRangeOpen(false)}
-                          className="w-full mt-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors"
+                          className="w-full mt-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors cursor-pointer"
                         >
                           Apply Custom Range
                         </button>
@@ -932,17 +1007,17 @@ export const GovernancePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Complaints Table */}
+            {/* Incidents Table */}
             <div className="overflow-x-auto border border-slate-200/90 rounded-xl">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-50/80 text-slate-600 font-bold border-b border-slate-200/80">
-                    <th className="py-3 px-3.5">Case ID</th>
+                    <th className="py-3 px-3.5">Incident ID</th>
                     <th className="py-3 px-3">Date</th>
-                    <th className="py-3 px-3">Complaint Summary</th>
-                    <th className="py-3 px-3">AI Classification</th>
+                    <th className="py-3 px-3">Hazard / Incident Summary</th>
+                    <th className="py-3 px-3">Hazard Category</th>
                     <th className="py-3 px-3">Risk Level</th>
-                    <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Statutory Status</th>
                     <th className="py-3 px-2 text-center">Actions</th>
                   </tr>
                 </thead>
@@ -1007,7 +1082,7 @@ export const GovernancePage: React.FC = () => {
                               setSelectedCaseId(item.id);
                               setIsUpdateStatusOpen(true);
                             }}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer"
                             title="Update Status"
                           >
                             <MoreVertical className="w-4 h-4" />
@@ -1022,54 +1097,42 @@ export const GovernancePage: React.FC = () => {
 
             {/* Pagination footer */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 text-xs text-slate-500">
-              <span>Showing 1 - {filteredCases.length} of 128 complaints</span>
+              <span>Showing 1 - {filteredCases.length} of 128 statutory incidents</span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600 cursor-pointer"
                 >
                   &lt;
                 </button>
                 <button
                   type="button"
-                  className="w-7 h-7 rounded bg-amber-500 text-slate-950 font-bold flex items-center justify-center shadow-2xs"
+                  className="w-7 h-7 rounded bg-amber-500 text-slate-950 font-bold flex items-center justify-center shadow-2xs cursor-pointer"
                 >
                   1
                 </button>
                 <button
                   type="button"
-                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600 cursor-pointer"
                 >
                   2
                 </button>
                 <button
                   type="button"
-                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600 cursor-pointer"
                 >
                   3
-                </button>
-                <button
-                  type="button"
-                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600"
-                >
-                  4
-                </button>
-                <button
-                  type="button"
-                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600"
-                >
-                  5
                 </button>
                 <span className="px-1 text-slate-400">...</span>
                 <button
                   type="button"
-                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600 cursor-pointer"
                 >
                   16
                 </button>
                 <button
                   type="button"
-                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600"
+                  className="w-7 h-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600 cursor-pointer"
                 >
                   &gt;
                 </button>
@@ -1077,11 +1140,11 @@ export const GovernancePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Case Details Panel (4 cols) */}
+          {/* Right Incident Details Panel (4 cols) */}
           <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            {/* Header: Case Details + View Full Report */}
+            {/* Header: Incident Details + View Full Report */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Case Details</h3>
+              <h3 className="text-sm font-bold text-slate-900">Incident Details</h3>
               <button
                 type="button"
                 onClick={() => setIsAllEvidenceOpen(true)}
@@ -1092,10 +1155,10 @@ export const GovernancePage: React.FC = () => {
               </button>
             </div>
 
-            {/* Case ID and Status */}
+            {/* Incident ID and Status */}
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[11px] text-slate-400 font-medium block">Case ID</span>
+                <span className="text-[11px] text-slate-400 font-medium block">Incident ID</span>
                 <span className="text-sm font-mono font-bold text-slate-900">{selectedCase.id}</span>
               </div>
               <span
@@ -1117,21 +1180,21 @@ export const GovernancePage: React.FC = () => {
               <span className="text-xs font-medium text-slate-800">{selectedCase.dateTime}</span>
             </div>
 
-            {/* Complaint Details */}
+            {/* Incident / Hazard Details */}
             <div>
               <span className="text-[11px] text-slate-400 font-medium block mb-1">
-                Complaint Details
+                Statutory Hazard Details
               </span>
               <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                 {selectedCase.fullDetails}
               </p>
             </div>
 
-            {/* AI Classification & Risk Level Metrics */}
+            {/* AI Hazard Classification & Risk Level Metrics */}
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg">
                 <span className="text-[10px] text-slate-400 font-semibold block uppercase">
-                  AI Classification
+                  Hazard Classification
                 </span>
                 <div className="flex items-center justify-between mt-1">
                   <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">
@@ -1170,13 +1233,13 @@ export const GovernancePage: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[11px] text-slate-400 font-medium">
-                  Evidence ({currentEvidence.length})
+                  Evidence & Telemetry Logs ({currentEvidence.length})
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsAddEvidenceOpen(true)}
                   className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300/80 px-2.5 py-0.5 rounded-md transition-colors cursor-pointer"
-                  title="Add new photo, video, or document evidence to this case"
+                  title="Add new sensor chart, CCTV clip, or inspection report to this incident"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>Add Evidence</span>
@@ -1191,11 +1254,11 @@ export const GovernancePage: React.FC = () => {
                 >
                   <Upload className="w-4 h-4 mb-1 text-slate-400 group-hover:text-amber-600" />
                   <span className="text-xs font-semibold">No evidence attached</span>
-                  <span className="text-[10px] text-slate-400">Click to upload photos, CCTV clips, or documents</span>
+                  <span className="text-[10px] text-slate-400">Click to upload sensor charts, CCTV clips, or DGMS forms</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  {/* Thumbnail 1: Scene Image */}
+                  {/* Thumbnail 1: Scene / Sensor Image */}
                   {firstImage && (
                     <div
                       onClick={() => setViewingEvidence(firstImage)}
@@ -1210,7 +1273,7 @@ export const GovernancePage: React.FC = () => {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-tr from-slate-900 to-slate-700 flex items-center justify-center text-[9px] text-slate-300 font-mono">
-                          Scene
+                          Sensor
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -1240,7 +1303,7 @@ export const GovernancePage: React.FC = () => {
                     <div
                       onClick={() => setIsAllEvidenceOpen(true)}
                       className="w-16 h-12 rounded-lg border border-slate-200 bg-slate-50 hover:bg-amber-50 flex flex-col items-center justify-center text-slate-500 hover:text-amber-800 cursor-pointer shrink-0 transition-colors shadow-2xs"
-                      title="View all evidence for this case"
+                      title="View all evidence for this incident"
                     >
                       <FileText className="w-3.5 h-3.5 mb-0.5 text-slate-400" />
                       <span className="text-[10px] font-semibold text-slate-600">+{remainingCount} more</span>
@@ -1264,7 +1327,7 @@ export const GovernancePage: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-1.5">
               <div className="flex items-center gap-1.5 font-bold text-amber-900">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Why Action Required?</span>
+                <span>Why Action Required? (Statutory Basis)</span>
               </div>
               <ul className="space-y-1 text-[11px] text-amber-900/90 pl-1">
                 {selectedCase.whyActionRequired.map((bullet, idx) => (
@@ -1276,10 +1339,10 @@ export const GovernancePage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Officer Notes if any */}
+            {/* Safety Officer Notes if any */}
             {selectedCase.notes && selectedCase.notes.length > 0 && (
               <div className="space-y-1 text-xs">
-                <span className="text-[11px] text-slate-400 font-medium">Officer Notes</span>
+                <span className="text-[11px] text-slate-400 font-medium">Safety Officer Notes</span>
                 {selectedCase.notes.map((n, i) => (
                   <p key={i} className="p-2 bg-slate-50 rounded border border-slate-200 text-[11px] text-slate-700">
                     {n}
@@ -1310,16 +1373,16 @@ export const GovernancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Section: Recent Audit Activity (Note: AI Governance Controls and Compliance & Audit removed as requested) */}
+        {/* Bottom Section: Recent Statutory Audit Activity */}
         <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-600" />
-              <h3 className="text-sm font-bold text-slate-900">Recent Audit Activity</h3>
+              <h3 className="text-sm font-bold text-slate-900">Recent Statutory Audit Activity</h3>
             </div>
             <button
               type="button"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
             >
               View All →
             </button>
@@ -1350,9 +1413,9 @@ export const GovernancePage: React.FC = () => {
                   <Upload className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Add Case Evidence</h3>
+                  <h3 className="text-base font-bold text-slate-900">Add Incident Evidence</h3>
                   <p className="text-[11px] text-slate-500">
-                    Attach media, forensic files, or CCTV recordings to case{' '}
+                    Attach sensor charts, underground camera stills, or DGMS forms to{' '}
                     <strong className="text-slate-900 font-mono">{selectedCase.id}</strong>
                   </p>
                 </div>
@@ -1385,7 +1448,7 @@ export const GovernancePage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. CCTV Camera #04 Footage, Suspect Footprint, IMEI Register"
+                  placeholder="e.g. MS-04 Gas Sensor Chart, Extensometer Displacement Log, DGMS Form IV"
                   value={evidenceTitle}
                   onChange={(e) => setEvidenceTitle(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -1406,7 +1469,7 @@ export const GovernancePage: React.FC = () => {
                     }`}
                   >
                     <ImageIcon className="w-4 h-4" />
-                    <span>Photo / Image</span>
+                    <span>Photo / Chart</span>
                   </button>
 
                   <button
@@ -1432,7 +1495,7 @@ export const GovernancePage: React.FC = () => {
                     }`}
                   >
                     <FileText className="w-4 h-4" />
-                    <span>Document / Log</span>
+                    <span>Statutory Doc</span>
                   </button>
                 </div>
               </div>
@@ -1440,7 +1503,7 @@ export const GovernancePage: React.FC = () => {
               {/* File Upload Zone */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Upload Evidence File (Photo, Video Clip, PDF)
+                  Upload Evidence File (Sensor Graph, CCTV Clip, PDF Report)
                 </label>
                 <div className="border-2 border-dashed border-slate-300 hover:border-amber-500 rounded-xl p-4 bg-slate-50/50 hover:bg-amber-50/20 text-center transition-colors relative cursor-pointer group">
                   <input
@@ -1481,7 +1544,7 @@ export const GovernancePage: React.FC = () => {
                         setEvidenceFileSize('');
                         setEvidenceDataUrl(null);
                       }}
-                      className="text-slate-400 hover:text-red-600 p-1 rounded"
+                      className="text-slate-400 hover:text-red-600 p-1 rounded cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1489,14 +1552,14 @@ export const GovernancePage: React.FC = () => {
                 )}
               </div>
 
-              {/* Or Media URL */}
+              {/* Or Direct Media URL */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
                   Or Provide Direct Media URL
                 </label>
                 <input
                   type="url"
-                  placeholder="https://example.com/cctv-footage-sample.mp4"
+                  placeholder="https://example.com/methane-sensor-chart.jpg"
                   value={evidenceUrlInput}
                   onChange={(e) => setEvidenceUrlInput(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -1506,27 +1569,27 @@ export const GovernancePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setEvidenceTitle('Bus Station Platform Photo');
+                      setEvidenceTitle('CH4 Gas Telemetry Curve');
                       setEvidenceType('image');
                       setEvidenceUrlInput(
-                        'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80'
+                        'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80'
                       );
                     }}
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline cursor-pointer"
                   >
-                    Scene Photo
+                    Sensor Graph
                   </button>
                   <span>•</span>
                   <button
                     type="button"
                     onClick={() => {
-                      setEvidenceTitle('City Traffic CCTV Clip');
+                      setEvidenceTitle('Underground Gallery CCTV Clip');
                       setEvidenceType('video');
                       setEvidenceUrlInput(
                         'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
                       );
                     }}
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline cursor-pointer"
                   >
                     CCTV Video
                   </button>
@@ -1536,11 +1599,11 @@ export const GovernancePage: React.FC = () => {
               {/* Description */}
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Investigative Notes / Description
+                  Safety Officer Context / Notes
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Add context on where and how this evidence was collected..."
+                  placeholder="Record sensor coordinates, calibration dates, or statutory inspection notes..."
                   value={evidenceDescription}
                   onChange={(e) => setEvidenceDescription(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -1580,7 +1643,7 @@ export const GovernancePage: React.FC = () => {
                 </span>
                 <h3 className="text-base font-bold text-slate-900 mt-1">{viewingEvidence.title}</h3>
                 <p className="text-[11px] text-slate-500">
-                  Case ID: <span className="font-mono font-semibold">{selectedCase.id}</span> • {viewingEvidence.date}
+                  Incident ID: <span className="font-mono font-semibold">{selectedCase.id}</span> • {viewingEvidence.date}
                 </p>
               </div>
               <button
@@ -1614,7 +1677,7 @@ export const GovernancePage: React.FC = () => {
                   <FileText className="w-12 h-12 text-amber-400 mx-auto" />
                   <div>
                     <p className="text-sm font-bold text-white">{viewingEvidence.title}</p>
-                    <p className="text-xs text-slate-400 mt-1">Official Forensic / Document Record</p>
+                    <p className="text-xs text-slate-400 mt-1">DGMS Statutory Compliance Record / Calibration Certificate</p>
                   </div>
                 </div>
               )}
@@ -1662,11 +1725,11 @@ export const GovernancePage: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Attached Evidence Repository
+                  Attached Mine Safety Evidence Repository
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Case <strong className="text-slate-900 font-mono">{selectedCase.id}</strong> —{' '}
-                  {currentEvidence.length} Total Verified Items
+                  Incident <strong className="text-slate-900 font-mono">{selectedCase.id}</strong> —{' '}
+                  {currentEvidence.length} Total Verified Records
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1754,12 +1817,12 @@ export const GovernancePage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal: New Complaint */}
+      {/* Modal: New Safety Incident */}
       {isNewComplaintOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-6 max-w-md w-full shadow-xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">File New Citizen Complaint</h3>
+              <h3 className="text-base font-bold text-slate-900">Log Mine Safety Incident</h3>
               <button
                 type="button"
                 onClick={() => setIsNewComplaintOpen(false)}
@@ -1771,11 +1834,11 @@ export const GovernancePage: React.FC = () => {
 
             <form onSubmit={handleCreateComplaint} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Complaint Summary</label>
+                <label className="block font-semibold text-slate-700 mb-1">Incident / Hazard Summary</label>
                 <textarea
                   rows={3}
                   required
-                  placeholder="Enter details of the citizen grievance or incident..."
+                  placeholder="Enter details of sensor threshold breach, strata movement, gas detection, or equipment hazard..."
                   value={newSummary}
                   onChange={(e) => setNewSummary(e.target.value)}
                   className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -1784,18 +1847,19 @@ export const GovernancePage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">AI Classification</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Hazard Category</label>
                   <select
                     value={newClassification}
                     onChange={(e) => setNewClassification(e.target.value)}
                     className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
                   >
-                    <option value="Theft">Theft</option>
-                    <option value="Suspicious Activity">Suspicious Activity</option>
-                    <option value="Civic Issue">Civic Issue</option>
-                    <option value="Harassment">Harassment</option>
-                    <option value="Cyber Threat">Cyber Threat</option>
-                    <option value="Public Nuisance">Public Nuisance</option>
+                    <option value="Inflammable Gas / Methane">Inflammable Gas / Methane</option>
+                    <option value="Strata & Roof Control">Strata & Roof Control</option>
+                    <option value="Mine Ventilation">Mine Ventilation</option>
+                    <option value="HEMM & Haul Road">HEMM & Haul Road</option>
+                    <option value="Inundation & Dewatering">Inundation & Dewatering</option>
+                    <option value="Coal Dust & Explosives">Coal Dust & Explosives</option>
+                    <option value="Miners PPE & Safety">Miners PPE & Safety</option>
                   </select>
                 </div>
 
@@ -1843,7 +1907,7 @@ export const GovernancePage: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg shadow-2xs cursor-pointer"
                 >
-                  Submit Complaint
+                  Log Incident
                 </button>
               </div>
             </form>
@@ -1856,7 +1920,7 @@ export const GovernancePage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-6 max-w-sm w-full shadow-xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Update Case Status</h3>
+              <h3 className="text-sm font-bold text-slate-900">Update Incident Status</h3>
               <button
                 type="button"
                 onClick={() => setIsUpdateStatusOpen(false)}
@@ -1867,7 +1931,7 @@ export const GovernancePage: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-600">
-              Select the new governance status for case{' '}
+              Select the new statutory status for incident{' '}
               <strong className="text-slate-900 font-mono">{selectedCase.id}</strong>:
             </p>
 
@@ -1895,7 +1959,7 @@ export const GovernancePage: React.FC = () => {
                 onClick={() => handleUpdateStatus('No Action Required')}
                 className="w-full flex items-center justify-between p-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 text-xs font-bold transition-colors cursor-pointer"
               >
-                <span>No Action Required</span>
+                <span>No Action Required (Cleared)</span>
                 {selectedCase.status === 'No Action Required' && <Check className="w-4 h-4" />}
               </button>
             </div>
@@ -1908,7 +1972,7 @@ export const GovernancePage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl border border-slate-200 p-6 max-w-md w-full shadow-xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Add Officer Case Note</h3>
+              <h3 className="text-sm font-bold text-slate-900">Add Safety Officer Note</h3>
               <button
                 type="button"
                 onClick={() => setIsAddNoteOpen(false)}
@@ -1920,14 +1984,14 @@ export const GovernancePage: React.FC = () => {
 
             <form onSubmit={handleAddNote} className="space-y-3.5 text-xs">
               <p className="text-slate-600">
-                Attach an operational or evidentiary note to case{' '}
+                Attach an operational or regulatory note to incident{' '}
                 <strong className="text-slate-900 font-mono">{selectedCase.id}</strong>:
               </p>
 
               <textarea
                 rows={3}
                 required
-                placeholder="Enter officer notes or investigation instructions..."
+                placeholder="Enter safety officer observations, gas flushing verification, or DGMS instructions..."
                 value={officerNoteText}
                 onChange={(e) => setOfficerNoteText(e.target.value)}
                 className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none"
