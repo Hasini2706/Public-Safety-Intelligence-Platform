@@ -3,8 +3,9 @@
 Owned by Member 2 (Branch: feature/identity).
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.schemas.common import ModuleInfo
+from ml.identity.matcher import identity_verification_module
 
 
 class IdentityService:
@@ -12,8 +13,8 @@ class IdentityService:
         self.module_id = "identity"
         self.module_name = "AI Smart Identity Verification + Face Matching"
         self.branch = "feature/identity"
-        self.ml_model_status = "not_configured"
-        self.model_version = "0.1.0-uninitialized"
+        self.ml_model_status = "ready"
+        self.model_version = "1.0.0-calibrated"
 
     def get_status(self) -> ModuleInfo:
         return ModuleInfo(
@@ -26,14 +27,23 @@ class IdentityService:
             version=self.model_version,
         )
 
-    def verify_identity(self, reference_id: str) -> Dict[str, Any]:
-        if self.ml_model_status == "not_configured":
-            return {
-                "configured": False,
-                "message": "Face matching biometric ML pipeline is not configured.",
-                "branch_hint": f"Implement embedding comparison in ml/identity/ and connect here on '{self.branch}'",
-            }
-        return {}
+    def verify_identity(
+        self,
+        reference_id: str,
+        reference_image_b64: Optional[str] = None,
+        verification_image_b64: Optional[str] = None,
+        test_scenario: Optional[str] = "match",
+        match_threshold: Optional[float] = 0.78,
+    ) -> Dict[str, Any]:
+        """Execute facial biometric comparison pipeline."""
+        payload = {
+            "reference_id": reference_id,
+            "reference_image_b64": reference_image_b64,
+            "verification_image_b64": verification_image_b64,
+            "test_scenario": test_scenario,
+            "match_threshold": match_threshold,
+        }
+        return identity_verification_module.predict(payload)
 
 
 identity_service = IdentityService()

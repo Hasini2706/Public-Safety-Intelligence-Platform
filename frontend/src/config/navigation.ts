@@ -23,7 +23,7 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     developer: 'Member 1',
     iconName: 'MessageSquareText',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Complaint text input',
       'Text preprocessing',
@@ -36,14 +36,14 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
   {
     id: 'identity',
     name: 'AI Smart Identity Verification + Face Matching',
-    shortName: 'Identity Verification',
+    shortName: 'Identity Classification',
     description: 'Facial similarity and biometric embedding verification decision-support.',
     path: '/identity',
     branch: 'feature/identity',
     developer: 'Member 2',
     iconName: 'UserCheck',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Reference image + verification image',
       'Face detection',
@@ -60,9 +60,9 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     path: '/threat-detection',
     branch: 'feature/threat-detection',
     developer: 'Member 3',
-    iconName: 'ShieldAlert',
+    iconName: 'Shield',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Event/source input',
       'Feature extraction',
@@ -80,9 +80,9 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     path: '/crime-analysis',
     branch: 'feature/crime-analysis',
     developer: 'Member 4',
-    iconName: 'Search',
+    iconName: 'BarChart2',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Evidence intake',
       'Evidence metadata',
@@ -100,9 +100,9 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
     path: '/governance',
     branch: 'feature/governance',
     developer: 'Member 5',
-    iconName: 'FileCheck',
+    iconName: 'Scale',
     apiStatus: 'active',
-    mlStatus: 'not_configured',
+    mlStatus: 'ready',
     workflowSteps: [
       'Inspection/compliance information',
       'Validation',
@@ -116,24 +116,15 @@ export const MODULE_REGISTRY: ModuleMetadata[] = [
 
 export const SIDEBAR_NAV: NavSection[] = [
   {
-    title: 'Overview',
+    title: '',
     items: [
-      { name: 'Dashboard', path: '/', icon: 'LayoutDashboard' },
-    ],
-  },
-  {
-    title: 'Intelligence Modules',
-    items: MODULE_REGISTRY.map((mod) => ({
-      name: mod.shortName,
-      path: mod.path,
-      icon: mod.iconName,
-    })),
-  },
-  {
-    title: 'System',
-    items: [
-      { name: 'System Status', path: '/system-status', icon: 'Activity' },
-      { name: 'About Project', path: '/about', icon: 'Info' },
+      { name: 'Overview', path: '/', icon: 'Home' },
+      { name: 'Complaint Classification', path: '/complaints', icon: 'MessageSquareText' },
+      { name: 'Identity Classification', path: '/identity', icon: 'UserCheck' },
+      { name: 'Threat Detection', path: '/threat-detection', icon: 'Shield' },
+      { name: 'Crime Analysis', path: '/crime-analysis', icon: 'BarChart2' },
+      { name: 'Governance & Compliance', path: '/governance', icon: 'Scale' },
     ],
   },
 ];
+

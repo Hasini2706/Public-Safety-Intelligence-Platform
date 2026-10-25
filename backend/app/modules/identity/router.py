@@ -1,7 +1,7 @@
 """API Router for Module 2: AI Smart Identity Verification."""
 
 from fastapi import APIRouter
-from app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse, ErrorDetail
 from .schemas import IdentityVerificationInput
 from .service import identity_service
 
@@ -19,18 +19,22 @@ async def get_identity_module_status():
 
 @router.post("/verify", response_model=ApiResponse)
 async def verify_identity(payload: IdentityVerificationInput):
-    result = identity_service.verify_identity(payload.reference_id)
-    if not result.get("configured", True):
+    try:
+        result = identity_service.verify_identity(
+            reference_id=payload.reference_id,
+            reference_image_b64=payload.reference_image_b64,
+            verification_image_b64=payload.verification_image_b64,
+            test_scenario=payload.test_scenario,
+            match_threshold=payload.match_threshold,
+        )
+        return ApiResponse(
+            success=True,
+            data=result,
+            message="Identity verification completed",
+        )
+    except ValueError as err:
         return ApiResponse(
             success=False,
-            error={
-                "code": "MODEL_NOT_CONFIGURED",
-                "message": result["message"],
-                "details": result,
-            },
+            error=ErrorDetail(code="INVALID_BIOMETRIC_IMAGE", message=str(err)),
+            message=str(err),
         )
-    return ApiResponse(
-        success=True,
-        data=result,
-        message="Identity verification completed",
-    )

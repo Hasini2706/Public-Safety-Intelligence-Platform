@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 from app.schemas.common import ApiResponse
-from .schemas import CrimeEvidenceInput
+from .schemas import CrimeEvidenceInput, CrimeAnalysisResult
 from .service import crime_service
 
 router = APIRouter(prefix="/crime-analysis", tags=["Module 4: Crime Analysis"])
@@ -18,19 +18,15 @@ async def get_crime_module_status():
 
 
 @router.post("/analyze", response_model=ApiResponse)
-async def analyze_crime(payload: CrimeEvidenceInput):
-    result = crime_service.analyze_incident(payload.incident_id, payload.incident_narrative)
-    if not result.get("configured", True):
-        return ApiResponse(
-            success=False,
-            error={
-                "code": "MODEL_NOT_CONFIGURED",
-                "message": result["message"],
-                "details": result,
-            },
-        )
+async def analyze_crime_incident(payload: CrimeEvidenceInput):
+    result = crime_service.analyze_incident(
+        incident_id=payload.incident_id,
+        narrative=payload.incident_narrative,
+        location=payload.location,
+        evidence_items=payload.evidence_items,
+    )
     return ApiResponse(
         success=True,
         data=result,
-        message="Crime evidence analysis completed",
+        message="Incident risk analysis and evidence correlation completed",
     )

@@ -12,7 +12,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-[#F4F7FC] flex flex-col">
       <Sidebar
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed(!collapsed)}
@@ -31,14 +31,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <main className="flex-1 flex flex-col">
           {children}
         </main>
-
-        <footer className="bg-white border-t border-slate-200 px-6 py-4 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 Public Safety Intelligence Platform — University Research Project</p>
-          <p className="text-[11px] text-slate-400">
-            5 Collaborating ML Engineers • Independent Feature Branches
-          </p>
-        </footer>
       </div>
     </div>
   );
 };
+
+

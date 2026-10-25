@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { RootLayout } from './layouts/RootLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { SystemStatusPage } from './pages/SystemStatusPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { AboutPage } from './pages/AboutPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -37,7 +38,9 @@ export const App: React.FC = () => {
           <Route path="governance" element={<GovernancePage />} />
 
           {/* System & Support Pages */}
-          <Route path="system-status" element={<SystemStatusPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="system-status" element={<SettingsPage />} />
+          <Route path="system-diagnostics" element={<SystemStatusPage />} />
           <Route path="about" element={<AboutPage />} />
 
           {/* 404 Fallback */}

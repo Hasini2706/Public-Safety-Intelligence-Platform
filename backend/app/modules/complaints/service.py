@@ -1,11 +1,11 @@
 """Service integration layer for Module 1: Complaint Classification.
 
-This file is owned by the developer of Module 1 (Branch: feature/complaints).
-The ML model should be loaded and evaluated here once trained.
+Connects the FastAPI router to the ML complaints classification module.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.schemas.common import ModuleInfo
+from ml.complaints.classifier import complaint_classifier_module
 
 
 class ComplaintService:
@@ -13,8 +13,8 @@ class ComplaintService:
         self.module_id = "complaints"
         self.module_name = "Smart Complaint Category Classification"
         self.branch = "feature/complaints"
-        self.ml_model_status = "not_configured"  # When model is trained: "ready"
-        self.model_version = "0.1.0-uninitialized"
+        self.ml_model_status = "ready"
+        self.model_version = "1.0.0-calibrated"
 
     def get_status(self) -> ModuleInfo:
         return ModuleInfo(
@@ -27,20 +27,14 @@ class ComplaintService:
             version=self.model_version,
         )
 
-    def classify_complaint(self, title: str, description: str) -> Dict[str, Any]:
-        """Placeholder interface for ML inference.
-
-        Raises NotImplementedError or returns uninitialized status until Member 1 implements model.
-        """
-        if self.ml_model_status == "not_configured":
-            return {
-                "configured": False,
-                "message": "Complaint classification ML model has not been trained or configured yet.",
-                "branch_hint": f"Implement model loading in ml/complaints/ and connect here on '{self.branch}'",
-            }
-        # Once implemented by Member 1:
-        # return model.predict(...)
-        return {}
+    def classify_complaint(self, title: str, description: str, department_hint: Optional[str] = None) -> Dict[str, Any]:
+        """Execute complaint classification using the trained NLP pipeline."""
+        payload = {
+            "title": title,
+            "description": description,
+            "department_hint": department_hint,
+        }
+        return complaint_classifier_module.predict(payload)
 
 
 complaint_service = ComplaintService()
